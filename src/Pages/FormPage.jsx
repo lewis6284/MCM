@@ -1,45 +1,75 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import FormLayout from "../components/FormLayout";
 import FieldCard from "../components/FieldCard";
+import api from "../api";
 
 const FormPage = () => {
     const [currentStep, setCurrentStep] = useState(1);
     const totalSteps = 3;
 
     const [formData, setFormData] = useState({
-        // Appointment Information
-        appointment_location: "",
-        country: "",
-        city: "",
-        country_traveling_to: "",
-
-        // Candidate Information
         first_name: "",
         last_name: "",
-        dob: "",
-        nationality: "",
-        gender: "",
-        marital_status: "",
-
-        // Passport & Visa
-        passport_number: "",
-        confirm_passport: "",
-        passport_issue_date: "",
-        passport_issue_place: "",
-        passport_expiry_date: "",
-        visa_type: "",
-
-        // Contact & Other
+        passport_uid: "",
+        national_id: "",
+        date_of_birth: "",
+        gender: "MALE",
+        marital_status: "SINGLE",
+        nationality_id: "",
+        travelling_to_id: "",
+        visa_type: "Work",
+        position_id: "",
+        medical_center_country_id: "",
+        medical_center_city_id: "",
         email: "",
         phone: "",
-        national_id: "",
-        position_applied: "",
-
-        // Confirmation
-        confirm_info: false,
+        amount: 10.00
     });
 
+    const [options, setOptions] = useState({
+        countries: [],
+        cities: [],
+        positions: []
+    });
+
+    const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState({});
+    const [success, setSuccess] = useState(false);
+
+    useEffect(() => {
+        const fetchInitialData = async () => {
+            try {
+                const [countriesRes, positionsRes] = await Promise.all([
+                    api.get("/locations/countries"),
+                    api.get("/locations/positions")
+                ]);
+                setOptions(prev => ({
+                    ...prev,
+                    countries: countriesRes.data,
+                    positions: positionsRes.data
+                }));
+            } catch (err) {
+                console.error("Error fetching initial form data:", err);
+            }
+        };
+        fetchInitialData();
+    }, []);
+
+    useEffect(() => {
+        const fetchCities = async () => {
+            if (!formData.medical_center_country_id) {
+                setOptions(prev => ({ ...prev, cities: [] }));
+                return;
+            }
+            try {
+                const response = await api.get(`/locations/countries/${formData.medical_center_country_id}/cities`);
+                setOptions(prev => ({ ...prev, cities: response.data }));
+            } catch (err) {
+                console.error("Error fetching cities:", err);
+            }
+        };
+        fetchCities();
+    }, [formData.medical_center_country_id]);
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -52,12 +82,10 @@ const FormPage = () => {
         }
     };
 
-    // Define fields for each step
     const stepFields = {
-        1: ["appointment_location", "country", "city", "country_traveling_to"],
-        2: ["first_name", "last_name", "dob", "nationality", "gender", "marital_status"],
-        3: ["passport_number", "confirm_passport", "passport_issue_date", "passport_issue_place",
-            "passport_expiry_date", "visa_type", "email", "phone", "national_id", "position_applied", "confirm_info"]
+        1: ["medical_center_country_id", "medical_center_city_id", "travelling_to_id"],
+        2: ["first_name", "last_name", "date_of_birth", "gender", "marital_status", "nationality_id"],
+        3: ["passport_uid", "national_id", "visa_type", "position_id", "email", "phone"]
     };
 
     const validateStep = (step) => {
@@ -65,23 +93,11 @@ const FormPage = () => {
         let isValid = true;
 
         stepFields[step].forEach((field) => {
-            const value = formData[field];
-            if (field === "confirm_info") {
-                if (!value) {
-                    newErrors[field] = true;
-                    isValid = false;
-                }
-            } else if (!value || !value.toString().trim()) {
+            if (!formData[field] || !formData[field].toString().trim()) {
                 newErrors[field] = true;
                 isValid = false;
             }
         });
-
-        // Check passport confirmation match (only in step 3)
-        if (step === 3 && formData.passport_number !== formData.confirm_passport) {
-            newErrors.confirm_passport = true;
-            isValid = false;
-        }
 
         setErrors(newErrors);
         return isValid;
@@ -101,37 +117,57 @@ const FormPage = () => {
         window.scrollTo({ top: 0, behavior: "smooth" });
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-
-        if (validateStep(currentStep)) {
-            alert("Form submitted successfully!");
-            console.log("Form Data:", formData);
-        } else {
+        if (!validateStep(currentStep)) {
             alert("Please fill in all required fields correctly.");
+            return;
+        }
+
+        setLoading(true);
+        setSuccess(false);
+
+        try {
+            const response = await api.post("/candidates/register", {
+                ...formData,
+                nationality_id: parseInt(formData.nationality_id),
+                travelling_to_id: parseInt(formData.travelling_to_id),
+                position_id: parseInt(formData.position_id),
+                medical_center_country_id: parseInt(formData.medical_center_country_id),
+                medical_center_city_id: parseInt(formData.medical_center_city_id),
+                amount: parseFloat(formData.amount)
+            });
+
+            if (response.status === 201 || response.status === 200) {
+                setSuccess(true);
+                alert("Candidate registered successfully! Payment receipt and booking generated.");
+                // Redirect or reset could happen here
+            }
+        } catch (err) {
+            console.error("Registration Error:", err);
+            alert("Error: " + (err.response?.data?.message || "Registration failed"));
+        } finally {
+            setLoading(false);
         }
     };
 
+    const countryOptions = options.countries.map(c => ({ label: c.name, value: c.id.toString() }));
+    const cityOptions = options.cities.map(c => ({ label: c.name, value: c.id.toString() }));
+    const positionOptions = options.positions.map(p => ({ label: p.name, value: p.id.toString() }));
+
+    // Gulf Countries Filter (Frontend Only)
+    const gulfCountries = ["Bahrain", "Kuwait", "Oman", "Qatar", "Saudi Arabia", "United Arab Emirates"];
+    const gulfOptions = countryOptions.filter(c => gulfCountries.includes(c.label));
+
     return (
         <FormLayout>
-            {/* Header Card */}
             <div className="bg-white px-8 pt-8 pb-6 rounded-lg shadow-md border-t-8 border-green-600 mb-6 relative overflow-hidden">
                 <div className="relative z-10">
-                    <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight mb-2">
-                        MCM System
-                    </h1>
-                    <p className="text-lg text-gray-600 font-medium">
-                        Book a medical examination appointment
-                    </p>
-                </div>
-                <div className="mt-6 pt-4 border-t border-gray-200">
-                    <p className="text-red-500 text-sm font-semibold flex items-center">
-
-                    </p>
+                    <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight mb-2">MCM System</h1>
+                    <p className="text-lg text-gray-600 font-medium">Book a medical examination appointment</p>
                 </div>
             </div>
 
-            {/* Progress Indicator */}
             <div className="bg-white p-6 rounded-lg shadow-sm">
                 <div className="flex items-center justify-between mb-4">
                     <span className="text-sm font-medium text-gray-600">Step {currentStep} of {totalSteps}</span>
@@ -143,216 +179,127 @@ const FormPage = () => {
                         style={{ width: `${(currentStep / totalSteps) * 100}%` }}
                     ></div>
                 </div>
-                <div className="flex justify-between mt-3">
-                    <span className={`text-xs ${currentStep >= 1 ? 'text-green-600 font-semibold' : 'text-gray-400'}`}>Appointment</span>
-                    <span className={`text-xs ${currentStep >= 2 ? 'text-green-600 font-semibold' : 'text-gray-400'}`}>Candidate</span>
-                    <span className={`text-xs ${currentStep >= 3 ? 'text-green-600 font-semibold' : 'text-gray-400'}`}>Passport & Visa</span>
+                <div className="flex justify-between mt-3 text-xs font-semibold text-gray-400">
+                    <span className={currentStep >= 1 ? "text-green-600" : ""}>LOCATION</span>
+                    <span className={currentStep >= 2 ? "text-green-600" : ""}>CANDIDATE</span>
+                    <span className={currentStep >= 3 ? "text-green-600" : ""}>DOCUMENTS</span>
                 </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-8 pb-20">
-                {/* STEP 1: APPOINTMENT INFORMATION */}
+            <form onSubmit={handleSubmit} className="space-y-8 pb-20 mt-6">
                 {currentStep === 1 && (
-                    <div>
-                        <h2 className="text-xl font-semibold text-gray-800 bg-white p-4 rounded-lg shadow-sm mb-4">
-                            Appointment Information
-                        </h2>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="animate-in fade-in slide-in-from-bottom-4">
+                        <h2 className="text-xl font-bold text-gray-800 bg-white p-4 rounded-lg shadow-sm mb-4">Location & Destination</h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <FieldCard
-                                label="Appointment Location"
-                                name="appointment_location"
-                                value={formData.appointment_location}
+                                label="Medical Center Country"
+                                name="medical_center_country_id"
+                                value={formData.medical_center_country_id}
                                 onChange={handleChange}
-                                placeholder="Enter location"
-                                error={errors.appointment_location}
-                            />
-
-                            <FieldCard
-                                label="Country"
-                                name="country"
-                                value={formData.country}
-                                onChange={handleChange}
-                                options={["USA", "Canada", "UK", "France", "Germany", "Other"]}
+                                options={countryOptions}
                                 placeholder="Select Country"
-                                error={errors.country}
+                                error={errors.medical_center_country_id}
                             />
-
                             <FieldCard
-                                label="City"
-                                name="city"
-                                value={formData.city}
+                                label="Medical Center City"
+                                name="medical_center_city_id"
+                                value={formData.medical_center_city_id}
                                 onChange={handleChange}
-                                options={["New York", "London", "Paris", "Berlin", "Toronto", "Other"]}
+                                options={cityOptions}
                                 placeholder="Select City"
-                                error={errors.city}
+                                error={errors.medical_center_city_id}
+                                disabled={!formData.medical_center_country_id}
                             />
-
                             <FieldCard
-                                label="Country Traveling To"
-                                name="country_traveling_to"
-                                value={formData.country_traveling_to}
+                                label="Travelling To"
+                                name="travelling_to_id"
+                                type="select"
+                                value={formData.travelling_to_id}
                                 onChange={handleChange}
-                                options={["USA", "Canada", "UK", "France", "Germany", "Australia", "Other"]}
-                                placeholder="Select Country Travelling To"
-                                error={errors.country_traveling_to}
+                                options={[{ label: "Select Destination", value: "" }, ...gulfOptions]}
+                                error={errors.travelling_to_id}
                             />
                         </div>
                     </div>
                 )}
 
-                {/* STEP 2: CANDIDATE INFORMATION */}
+                {/* Step 2 ... */}
                 {currentStep === 2 && (
-                    <div>
-                        <h2 className="text-xl font-semibold text-gray-800 bg-white p-4 rounded-lg shadow-sm mb-4">
-                            Candidate information
-                        </h2>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="animate-in fade-in slide-in-from-bottom-4">
+                        <h2 className="text-xl font-bold text-gray-800 bg-white p-4 rounded-lg shadow-sm mb-4">Candidate Information</h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <FieldCard
                                 label="First Name"
                                 name="first_name"
                                 value={formData.first_name}
                                 onChange={handleChange}
-                                placeholder="First name"
+                                placeholder="Enter first name"
                                 error={errors.first_name}
                             />
-
                             <FieldCard
                                 label="Last Name"
                                 name="last_name"
                                 value={formData.last_name}
                                 onChange={handleChange}
-                                placeholder="Last name"
+                                placeholder="Enter last name"
                                 error={errors.last_name}
                             />
-
                             <FieldCard
                                 label="Date of Birth"
-                                name="dob"
-                                value={formData.dob}
-                                onChange={handleChange}
+                                name="date_of_birth"
                                 type="date"
-                                placeholder="Select Date"
-                                error={errors.dob}
+                                value={formData.date_of_birth}
+                                onChange={handleChange}
+                                error={errors.date_of_birth}
                             />
-
                             <FieldCard
                                 label="Nationality"
-                                name="nationality"
-                                value={formData.nationality}
+                                name="nationality_id"
+                                value={formData.nationality_id}
                                 onChange={handleChange}
-                                options={["American", "Canadian", "British", "French", "German", "Other"]}
+                                options={countryOptions}
                                 placeholder="Select Nationality"
-                                error={errors.nationality}
+                                error={errors.nationality_id}
                             />
-
                             <FieldCard
                                 label="Gender"
                                 name="gender"
+                                type="radio"
                                 value={formData.gender}
                                 onChange={handleChange}
-                                options={["Male", "Female"]}
-                                error={errors.gender}
+                                options={[
+                                    { label: "Male", value: "MALE" },
+                                    { label: "Female", value: "FEMALE" }
+                                ]}
                             />
-
                             <FieldCard
-                                label="Marital status"
+                                label="Marital Status"
                                 name="marital_status"
+                                type="radio"
                                 value={formData.marital_status}
                                 onChange={handleChange}
-                                options={["Single", "Married", "Divorced", "Widowed"]}
-                                error={errors.marital_status}
+                                options={[
+                                    { label: "Single", value: "SINGLE" },
+                                    { label: "Married", value: "MARRIED" },
+                                    { label: "Divorced", value: "DIVORCED" }
+                                ]}
                             />
                         </div>
                     </div>
                 )}
 
-                {/* STEP 3: PASSPORT & VISA */}
                 {currentStep === 3 && (
-                    <div>
-                        <h2 className="text-xl font-semibold text-gray-800 bg-white p-4 rounded-lg shadow-sm mb-4">
-                            Passport & Visa Information
-                        </h2>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="animate-in fade-in slide-in-from-bottom-4">
+                        <h2 className="text-xl font-bold text-gray-800 bg-white p-4 rounded-lg shadow-sm mb-4">Passport & Identification</h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <FieldCard
-                                label="Passport number №"
-                                name="passport_number"
-                                value={formData.passport_number}
+                                label="Passport UID"
+                                name="passport_uid"
+                                value={formData.passport_uid}
                                 onChange={handleChange}
-                                placeholder="Enter Passport No"
-                                error={errors.passport_number}
+                                placeholder="Enter Passport UID"
+                                error={errors.passport_uid}
                             />
-
-                            <FieldCard
-                                label="Confirm Passport №"
-                                name="confirm_passport"
-                                value={formData.confirm_passport}
-                                onChange={handleChange}
-                                placeholder="Confirm Passport No"
-                                error={errors.confirm_passport}
-                            />
-
-                            <FieldCard
-                                label="Passport Issue Date"
-                                name="passport_issue_date"
-                                value={formData.passport_issue_date}
-                                onChange={handleChange}
-                                type="date"
-                                placeholder="Select Date"
-                                error={errors.passport_issue_date}
-                            />
-
-                            <FieldCard
-                                label="Passport Issue Place"
-                                name="passport_issue_place"
-                                value={formData.passport_issue_place}
-                                onChange={handleChange}
-                                placeholder="Enter Issue Place"
-                                error={errors.passport_issue_place}
-                            />
-
-                            <FieldCard
-                                label="Passport Expiry Date"
-                                name="passport_expiry_date"
-                                value={formData.passport_expiry_date}
-                                onChange={handleChange}
-                                type="date"
-                                placeholder="Select Date"
-                                error={errors.passport_expiry_date}
-                            />
-
-                            <FieldCard
-                                label="Visa Type"
-                                name="visa_type"
-                                value={formData.visa_type}
-                                onChange={handleChange}
-                                options={["Work", "Tourist", "Business", "Student"]}
-                                placeholder="Select Visa Type"
-                                error={errors.visa_type}
-                            />
-
-                            <FieldCard
-                                label="Email Address"
-                                name="email"
-                                value={formData.email}
-                                onChange={handleChange}
-                                type="email"
-                                placeholder="your@mail.com"
-                                error={errors.email}
-                            />
-
-                            <FieldCard
-                                label="Phone №"
-                                name="phone"
-                                value={formData.phone}
-                                onChange={handleChange}
-                                type="tel"
-                                placeholder="Enter Phone Number"
-                                error={errors.phone}
-                            />
-
                             <FieldCard
                                 label="National ID"
                                 name="national_id"
@@ -361,83 +308,94 @@ const FormPage = () => {
                                 placeholder="Enter National ID"
                                 error={errors.national_id}
                             />
-
                             <FieldCard
-                                label="Position applied for"
-                                name="position_applied"
-                                value={formData.position_applied}
+                                label="Visa Type"
+                                name="visa_type"
+                                value={formData.visa_type}
                                 onChange={handleChange}
-                                placeholder="Enter Position"
-                                error={errors.position_applied}
+                                options={[
+                                    { label: "Work", value: "Work" },
+                                    { label: "Tourist", value: "Tourist" },
+                                    { label: "Business", value: "Business" }
+                                ]}
+                                placeholder="Select Visa Type"
                             />
-                        </div>
-
-                        {/* CONFIRMATION CHECKBOX */}
-                        <div className="bg-white p-6 rounded-lg shadow-sm mt-4">
-                            <div className="flex items-start gap-3">
-                                <input
-                                    type="checkbox"
-                                    name="confirm_info"
-                                    checked={formData.confirm_info}
-                                    onChange={handleChange}
-                                    className={`mt-1 w-4 h-4 ${errors.confirm_info ? "ring-2 ring-red-500" : ""}`}
+                            <FieldCard
+                                label="Position Applied For"
+                                name="position_id"
+                                value={formData.position_id}
+                                onChange={handleChange}
+                                options={positionOptions}
+                                placeholder="Select Position"
+                                error={errors.position_id}
+                            />
+                            <FieldCard
+                                label="Email Address"
+                                name="email"
+                                type="email"
+                                value={formData.email}
+                                onChange={handleChange}
+                                placeholder="candidate@example.com"
+                                error={errors.email}
+                            />
+                            <FieldCard
+                                label="Phone Number"
+                                name="phone"
+                                value={formData.phone}
+                                onChange={handleChange}
+                                placeholder="+257..."
+                                error={errors.phone}
+                            />
+                            <div className="md:col-span-2">
+                                <FieldCard
+                                    label="Total Amount (USD)"
+                                    name="amount"
+                                    value={`$${formData.amount}`}
+                                    disabled={true}
                                 />
-                                <label className="text-gray-800 text-sm">
-                                    I confirm that all information provided is correct and accurate. <span className="text-red-500">*</span>
-                                </label>
                             </div>
                         </div>
                     </div>
                 )}
 
-                {/* Navigation Buttons */}
-                <div className="flex items-center justify-between pt-6">
+                <div className="flex items-center justify-between pt-8 border-t border-gray-100">
                     <button
                         type="button"
                         onClick={handlePrevious}
-                        disabled={currentStep === 1}
-                        className={`px-6 py-3 rounded-md font-semibold transition-all ${currentStep === 1
-                            ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                            : 'bg-gray-300 text-gray-700 hover:bg-gray-400 active:scale-95'
-                            }`}
+                        disabled={currentStep === 1 || loading}
+                        className={`px-8 py-3 rounded-xl font-bold transition-all ${currentStep === 1 ? 'bg-gray-100 text-gray-400' : 'bg-gray-100 text-gray-700 hover:bg-gray-200 active:scale-95'}`}
                     >
                         Previous
                     </button>
 
-                    <div className="flex gap-3">
-                        <button
-                            type="button"
-                            onClick={() => setFormData({
-                                appointment_location: "", country: "", city: "", country_traveling_to: "",
-                                first_name: "", last_name: "", dob: "", nationality: "", gender: "", marital_status: "",
-                                passport_number: "", confirm_passport: "", passport_issue_date: "", passport_issue_place: "",
-                                passport_expiry_date: "", visa_type: "", email: "", phone: "", national_id: "",
-                                position_applied: "", confirm_info: false
-                            })}
-                            className="text-green-700 font-medium hover:underline px-4"
-                        >
-                            Clear form
-                        </button>
-
+                    <div className="flex gap-4">
                         {currentStep < totalSteps ? (
                             <button
                                 type="button"
                                 onClick={handleNext}
-                                className="bg-green-600 hover:bg-green-700 text-white font-semibold px-8 py-3 rounded-md shadow-md transition-all active:scale-95"
+                                className="bg-green-600 hover:bg-green-700 text-white font-bold px-10 py-3 rounded-xl shadow-lg transition-all active:scale-95"
                             >
-                                Next
+                                Next Step
                             </button>
                         ) : (
                             <button
                                 type="submit"
-                                className="bg-green-600 hover:bg-green-700 text-white font-semibold px-8 py-3 rounded-md shadow-md transition-all active:scale-95"
+                                disabled={loading}
+                                className={`bg-green-600 hover:bg-green-700 text-white font-bold px-10 py-3 rounded-xl shadow-lg transition-all active:scale-95 flex items-center gap-2 ${loading ? "opacity-70" : ""}`}
                             >
-                                Submit Form
+                                {loading ? "Processing..." : "Complete Enrollment"}
                             </button>
                         )}
                     </div>
                 </div>
             </form>
+
+            {success && (
+                <div className="bg-green-50 border border-green-200 text-green-800 p-6 rounded-2xl text-center font-bold animate-in zoom-in-95 duration-300">
+                    <p className="text-2xl mb-2">Registration Complete!</p>
+                    <p className="text-green-600">Your professional business flow has been initiated successfully.</p>
+                </div>
+            )}
         </FormLayout>
     );
 };

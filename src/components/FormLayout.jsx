@@ -14,9 +14,9 @@ const FormLayout = ({ children }) => {
                     <img
                         src={gulfLogo}
                         alt="Gulf Logo"
-                        className="h-10 md:h-14 w-auto drop-shadow-sm"
+                        className="h-12 md:h-16 w-auto drop-shadow-sm"
                     />
-                    <div className="h-8 w-[1px] bg-green-200" />
+                    <div className="h-10 w-[1px] bg-green-200" />
                     <img
                         src={mainLogo}
                         alt="MCM Logo"
