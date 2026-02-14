@@ -14,6 +14,7 @@ import AgencyManagementPage from "./Pages/AgencyManagementPage";
 import HospitalManagementPage from "./Pages/HospitalManagementPage";
 import PositionManagementPage from "./Pages/PositionManagementPage";
 import MedicalReportPage from "./Pages/MedicalReportPage";
+import HospitalDashboardPage from "./Pages/HospitalDashboardPage";
 
 function AppContent() {
     const { user, isAuthenticated } = useAuth();
@@ -44,6 +45,7 @@ function AppContent() {
                 {/* Common Protected Routes */}
                 <Route path="/form" element={<FormPage />} />
                 <Route path="/medical-reports" element={<MedicalReportPage />} />
+                <Route path="/hospital-dashboard" element={<HospitalDashboardPage />} />
             </Route>
 
             {/* Default Redirects */}

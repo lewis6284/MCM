@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import FormLayout from "../components/FormLayout";
 import FieldCard from "../components/FieldCard";
 import api from "../api";
-import { MoveLeft, CheckCircle, ArrowRight } from "lucide-react";
+import { MoveLeft, CheckCircle, ArrowRight, Search } from "lucide-react";
 
 const MedicalReportPage = () => {
     const [currentStep, setCurrentStep] = useState(1);
@@ -10,6 +10,7 @@ const MedicalReportPage = () => {
 
     const [formData, setFormData] = useState({
         booking_id: "",
+        candidate_photo: null,
         fit_status: "FIT",
         report_expiry_date: "",
         ghc_code: "",
@@ -40,7 +41,10 @@ const MedicalReportPage = () => {
 
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState(false);
+    const [finalSuccess, setFinalSuccess] = useState(false);
     const [errors, setErrors] = useState({});
+    const [searchPassport, setSearchPassport] = useState("");
+    const [searching, setSearching] = useState(false);
 
     // Auto-calculate BMI
     useEffect(() => {
@@ -54,15 +58,65 @@ const MedicalReportPage = () => {
         }
     }, [formData.height, formData.weight]);
 
+    // Check query params for passport (from Dashboard)
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const passport = params.get("passport");
+        if (passport) {
+            setSearchPassport(passport);
+            // Trigger search automatically if available? 
+            // We can't call handlePassportSearch here easily because it updates state that might cause loops or issues if not careful.
+            // But we can just set the search term for the user to click 'Find' or we can extract the logic.
+            // Let's just set it for now. User clicks Find.
+            // Or better, trigger it via a timeout or flag?
+            // Actually, let's just leave it populated.
+        }
+    }, []);
+
     const handleChange = (e) => {
-        const { name, value, type } = e.target;
+        const { name, value, type, files } = e.target;
         setFormData(prev => ({
             ...prev,
-            [name]: type === "number" ? parseFloat(value) : value
+            [name]: type === "file" ? files[0] : (type === "number" ? parseFloat(value) : value)
         }));
 
         if (errors[name]) {
             setErrors(prev => ({ ...prev, [name]: false }));
+        }
+    };
+
+    const handlePassportSearch = async () => {
+        if (!searchPassport) {
+            alert("Please enter a passport number");
+            return;
+        }
+
+        setSearching(true);
+        try {
+            const response = await api.get(`/bookings?passport_number=${searchPassport}`);
+            const bookings = response.data;
+
+            if (bookings && bookings.length > 0) {
+                // Assuming we take the most recent booking or the first one found
+                // Ideally, there might be logic to select the correct active booking
+                const booking = bookings[0]; // Simplification
+
+                setFormData(prev => ({
+                    ...prev,
+                    booking_id: booking.id,
+                    // Auto-fill other details if available from candidate/booking
+                    // candidate_photo might be tricky if it's a file object vs URL string
+                    // For now, let's just set the ID which is the critical missing piece
+                }));
+                alert(`Found Booking ID: ${booking.id} for ${booking.Candidate.first_name} ${booking.Candidate.last_name}`);
+            } else {
+                alert("No booking found for this passport number.");
+            }
+        } catch (error) {
+            console.error("Search error:", error);
+            alert("Error searching for booking: " + (error.response?.data?.message || error.message));
+        } finally {
+            setSearching(false);
         }
     };
 
@@ -101,21 +155,28 @@ const MedicalReportPage = () => {
         setSuccess(false);
 
         try {
-            const payload = {
-                ...formData,
-                booking_id: parseInt(formData.booking_id),
-                height: parseFloat(formData.height || 0),
-                weight: parseFloat(formData.weight || 0),
-                bmi: parseFloat(formData.bmi || 0),
-                pulse: parseInt(formData.pulse || 0),
-                rr_min: parseInt(formData.rr_min || 0),
-                // Ensure strings are strings
-                blood_haemoglobin: formData.blood_haemoglobin?.toString() || "",
-                biochem_rbs: formData.biochem_rbs?.toString() || "",
-                biochem_creatinine: formData.biochem_creatinine?.toString() || ""
-            };
+            const payload = new FormData();
 
-            await api.post("/medical-reports", payload);
+            // Append all fields to FormData
+            Object.keys(formData).forEach(key => {
+                if (key === 'candidate_photo' && formData[key]) {
+                    payload.append('candidate_photo', formData[key]);
+                } else if (formData[key] !== null && formData[key] !== undefined) {
+                    payload.append(key, formData[key]);
+                }
+            });
+
+            // Make sure numbers are sent as numbers or strings depending on backend expectation
+            // FormData sends everything as strings, backend usually handles parsing or we stay consistent
+            // If backend expects specific numeric types, FormData might be tricky if not handled on server
+            // But usually for multipart/form-data, backend parses strings to numbers.
+            // Let's ensure we are sending the correct values.
+
+            await api.post("/medical-reports", payload, {
+                headers: {
+                    "Content-Type": "multipart/form-data"
+                }
+            });
             setSuccess(true);
             alert("Medical Report Submitted Successfully!");
         } catch (error) {
@@ -126,16 +187,116 @@ const MedicalReportPage = () => {
         }
     };
 
-    if (success) {
+    const handlePrintPDF = async () => {
+        if (!formData.booking_id) return;
+        try {
+            // Need the report ID. But we only have booking_id in formData.
+            // The submit response gave us the report object. We should store it.
+            // For now, let's fetch report by booking ID if we don't have report ID
+            const res = await api.get(`/medical-reports/booking/${formData.booking_id}`);
+            const reportId = res.data.id;
+
+            // fetch PDF as blob to include auth headers
+            const pdfRes = await api.get(`/medical-reports/${reportId}/pdf`, {
+                responseType: 'blob'
+            });
+
+            // create blob link
+            const url = window.URL.createObjectURL(new Blob([pdfRes.data], { type: 'application/pdf' }));
+
+            // Open in new window for printing
+            window.open(url, '_blank');
+        } catch (error) {
+            alert("Error generating PDF for print: " + error.message);
+        }
+    };
+
+    const handleUploadSigned = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        try {
+            setLoading(true);
+            const res = await api.get(`/medical-reports/booking/${formData.booking_id}`);
+            const reportId = res.data.id;
+
+            const payload = new FormData();
+            payload.append('signed_report', file);
+
+            await api.post(`/medical-reports/${reportId}/submit-signed`, payload, {
+                headers: { "Content-Type": "multipart/form-data" }
+            });
+
+            setFinalSuccess(true);
+        } catch (error) {
+            alert("Error uploading signed report: " + error.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    if (finalSuccess) {
         return (
             <FormLayout>
-                <div className="bg-white p-12 rounded-2xl shadow-xl text-center animate-in zoom-in-95 duration-500">
+                <div className="bg-white p-12 rounded-2xl shadow-xl text-center animate-in zoom-in-95 duration-500 max-w-2xl mx-auto">
                     <div className="mx-auto w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mb-6">
                         <CheckCircle size={48} className="text-green-600" />
                     </div>
-                    <h2 className="text-3xl font-extrabold text-gray-900 mb-4">Medical Report Filed!</h2>
-                    <p className="text-gray-600 text-lg mb-8">The medical examination results have been successfully recorded and the agency has been notified.</p>
-                    <button onClick={() => window.location.href = '/dashboard'} className="px-8 py-3 bg-gray-900 text-white rounded-xl font-bold hover:bg-black transition-all">
+                    <h2 className="text-3xl font-extrabold text-gray-900 mb-4">Process Complete!</h2>
+                    <p className="text-gray-600 text-lg mb-8">
+                        The signed report has been uploaded successfully.
+                        <br />
+                        <span className="font-semibold text-green-700">
+                            The certificate has been automatically sent to the Agency.
+                        </span>
+                    </p>
+                    <button
+                        onClick={() => window.location.href = '/hospital-dashboard'}
+                        className="px-8 py-3 bg-gray-900 text-white rounded-xl font-bold hover:bg-black transition-all"
+                    >
+                        Return to Dashboard
+                    </button>
+                </div>
+            </FormLayout>
+        );
+    }
+
+    if (success) {
+        return (
+            <FormLayout>
+                <div className="bg-white p-12 rounded-2xl shadow-xl text-center animate-in zoom-in-95 duration-500 max-w-2xl mx-auto">
+                    <div className="mx-auto w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mb-6">
+                        <CheckCircle size={48} className="text-green-600" />
+                    </div>
+                    <h2 className="text-3xl font-extrabold text-gray-900 mb-4">Medical Report Created!</h2>
+                    <p className="text-gray-600 text-lg mb-8">
+                        The initial report has been recorded.
+                        Please print the PDF, sign/stamp it, and upload the scanned copy to finalize.
+                    </p>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                        <div className="p-6 bg-gray-50 rounded-xl border border-gray-200">
+                            <h3 className="font-bold text-gray-800 mb-2">Step 1: Print Report</h3>
+                            <button
+                                onClick={handlePrintPDF}
+                                className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all mb-2"
+                            >
+                                Print PDF
+                            </button>
+                            <p className="text-xs text-gray-500">Opens in new tab. Use browser print (Ctrl+P).</p>
+                        </div>
+
+                        <div className="p-6 bg-gray-50 rounded-xl border border-gray-200">
+                            <h3 className="font-bold text-gray-800 mb-2">Step 2: Upload Signed Copy</h3>
+                            <label className="block w-full py-3 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition-all cursor-pointer">
+                                {loading ? "Uploading..." : "Upload Scanned PDF"}
+                                <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg" onChange={handleUploadSigned} disabled={loading} />
+                            </label>
+                            <p className="text-xs text-gray-500">Supported: PDF, JPG</p>
+                        </div>
+                    </div>
+
+                    <button onClick={() => window.location.href = '/hospital-dashboard'} className="text-gray-500 hover:text-gray-800 font-medium transition-colors">
                         Return to Dashboard
                     </button>
                 </div>
@@ -146,9 +307,17 @@ const MedicalReportPage = () => {
     return (
         <FormLayout>
             <div className="bg-white px-8 pt-8 pb-6 rounded-lg shadow-md border-t-8 border-green-600 mb-6 relative overflow-hidden">
-                <div className="relative z-10">
-                    <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight mb-2">Medical Examination Report</h1>
-                    <p className="text-lg text-gray-600 font-medium">Doctor's submission for candidate fitness.</p>
+                <div className="relative z-10 flex justify-between items-start">
+                    <div>
+                        <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight mb-2">Medical Examination Report</h1>
+                        <p className="text-lg text-gray-600 font-medium">Doctor's submission for candidate fitness.</p>
+                    </div>
+                    <button
+                        onClick={() => window.location.href = '/hospital-dashboard'}
+                        className="bg-white/90 backdrop-blur text-green-700 px-4 py-2 rounded-lg font-bold shadow-sm hover:bg-white transition-all flex items-center gap-2 text-sm"
+                    >
+                        View Dashboard <ArrowRight size={16} />
+                    </button>
                 </div>
             </div>
 
@@ -179,7 +348,40 @@ const MedicalReportPage = () => {
                     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                         <div className="bg-white p-6 rounded-lg shadow-sm mb-6">
                             <h2 className="text-xl font-bold text-gray-800 border-b pb-2 mb-4">Examination Details</h2>
+
+                            {/* Passport Search Section */}
+                            <div className="mb-6 bg-blue-50 p-4 rounded-xl border border-blue-100">
+                                <label className="block text-sm font-medium text-blue-800 mb-2">Search Booking by Passport</label>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        value={searchPassport}
+                                        onChange={(e) => setSearchPassport(e.target.value)}
+                                        placeholder="Enter Passport Number"
+                                        className="flex-1 p-3 border border-blue-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={handlePassportSearch}
+                                        disabled={searching}
+                                        className="bg-blue-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-blue-700 transition-colors disabled:opacity-70"
+                                    >
+                                        {searching ? "Searching..." : "Find"}
+                                    </button>
+                                </div>
+                            </div>
+
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="md:col-span-2">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Candidate Photo</label>
+                                    <input
+                                        type="file"
+                                        name="candidate_photo"
+                                        onChange={handleChange}
+                                        className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all"
+                                        accept="image/*"
+                                    />
+                                </div>
                                 <FieldCard label="Booking ID" name="booking_id" value={formData.booking_id} onChange={handleChange} placeholder="e.g. 12" error={errors.booking_id} type="number" />
                                 <FieldCard label="Expiry Date" name="report_expiry_date" value={formData.report_expiry_date} onChange={handleChange} type="date" error={errors.report_expiry_date} />
                                 <FieldCard label="GHC Code" name="ghc_code" value={formData.ghc_code} onChange={handleChange} placeholder="e.g. 25/01/02" error={errors.ghc_code} />

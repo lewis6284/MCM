@@ -5,10 +5,11 @@ import { useAuth } from "../context/AuthContext";
 
 const Sidebar = () => {
     const location = useLocation();
-    const { logout } = useAuth();
+    const { logout, user } = useAuth();
+    const dashboardPath = user?.role === "HOSPITAL" ? "/hospital-dashboard" : "/dashboard";
 
-    const menuItems = [
-        { name: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
+    const allMenuItems = [
+        { name: "Dashboard", path: dashboardPath, icon: LayoutDashboard },
         { name: "Users", path: "/dashboard/users", icon: Users },
         { name: "Create User", path: "/dashboard/create-user", icon: UserPlus },
         { name: "Countries", path: "/dashboard/countries", icon: Globe },
@@ -22,11 +23,15 @@ const Sidebar = () => {
         { name: "Register Admin", path: "/dashboard/register-admin", icon: UserPlus },
     ];
 
+    const menuItems = user?.role === "HOSPITAL"
+        ? allMenuItems.filter(item => item.name === "Dashboard")
+        : allMenuItems;
+
     return (
         <div className="w-full bg-white h-full flex flex-col border-r border-gray-200 shadow-xl">
             <div className="p-6">
                 <h2 className="text-2xl font-bold text-green-700 flex items-center gap-2">
-                    MCM <span className="text-gray-400 font-light font-sans text-xs uppercase tracking-widest">Admin</span>
+                    MCM <span className="text-gray-400 font-light font-sans text-xs uppercase tracking-widest"></span>
                 </h2>
             </div>
 
