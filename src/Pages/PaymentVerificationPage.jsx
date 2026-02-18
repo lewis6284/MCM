@@ -41,6 +41,19 @@ const PaymentVerificationPage = () => {
         }
     };
 
+    const handleDownloadBordereau = async (paymentId) => {
+        try {
+            const response = await api.get(`/payment/bordereau/${paymentId}`, {
+                responseType: 'blob'
+            });
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            window.open(url, '_blank');
+        } catch (error) {
+            console.error("Error downloading bordereau:", error);
+            alert("Failed to download bordereau file.");
+        }
+    };
+
     return (
         <DashboardLayout>
             <div className="space-y-8">
@@ -91,7 +104,14 @@ const PaymentVerificationPage = () => {
                                         <td className="px-8 py-5 font-mono text-xs text-gray-400">
                                             {payment.Booking?.reference_number}
                                         </td>
-                                        <td className="px-8 py-5 text-right">
+                                        <td className="px-8 py-5 text-right flex justify-end gap-3">
+                                            <button
+                                                onClick={() => handleDownloadBordereau(payment.id)}
+                                                className="inline-flex items-center gap-2 text-blue-600 bg-blue-50 px-4 py-2 rounded-xl text-xs font-bold hover:bg-blue-100 transition-colors"
+                                            >
+                                                <Eye size={16} />
+                                                View Proof
+                                            </button>
                                             <button
                                                 onClick={() => handleVerify(payment.id)}
                                                 disabled={actionLoading === payment.id}
