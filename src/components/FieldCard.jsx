@@ -61,6 +61,21 @@ const FieldCard = ({ label, name, value, onChange, type = "text", options = null
                             );
                         })}
                     </select>
+                ) : type === "file" ? (
+                    <div className="flex flex-col gap-2">
+                        <input
+                            type="file"
+                            name={name}
+                            onChange={onChange}
+                            className="w-full pb-2 bg-transparent outline-none border-none text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100 cursor-pointer"
+                        />
+                        {value && typeof value === 'string' && (
+                            <p className="text-xs text-gray-500 truncate">Selected: {value}</p>
+                        )}
+                        {value && value instanceof File && (
+                            <p className="text-xs text-gray-500 truncate">Selected: {value.name}</p>
+                        )}
+                    </div>
                 ) : (
                     <input
                         type={type}
@@ -70,7 +85,7 @@ const FieldCard = ({ label, name, value, onChange, type = "text", options = null
                         placeholder={placeholder}
                         className="w-full pb-2 bg-transparent outline-none border-none text-gray-700 placeholder:text-gray-400"
                     />
-                )}
+                ) /* end input type check */}
 
                 {/* Static bottom line - Hidden for radio types as they don't follow the line design */}
                 {type !== "radio" && (

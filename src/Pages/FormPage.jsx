@@ -11,6 +11,7 @@ const FormPage = () => {
         first_name: "",
         last_name: "",
         passport_uid: "",
+        confirm_passport_uid: "",
         national_id: "",
         date_of_birth: "",
         gender: "MALE",
@@ -23,6 +24,10 @@ const FormPage = () => {
         medical_center_city_id: "",
         email: "",
         phone: "",
+        passport_issue_date: "",
+        passport_expiry_date: "",
+        place_of_issue: "",
+        bordereau: null,
         amount: 10.00
     });
 
@@ -72,10 +77,10 @@ const FormPage = () => {
     }, [formData.medical_center_country_id]);
 
     const handleChange = (e) => {
-        const { name, value, type, checked } = e.target;
+        const { name, value, type, checked, files } = e.target;
         setFormData((prev) => ({
             ...prev,
-            [name]: type === "checkbox" ? checked : value
+            [name]: type === "checkbox" ? checked : type === "file" ? files[0] : value
         }));
         if (errors[name]) {
             setErrors((prev) => ({ ...prev, [name]: false }));
@@ -83,9 +88,9 @@ const FormPage = () => {
     };
 
     const stepFields = {
-        1: ["medical_center_country_id", "medical_center_city_id", "travelling_to_id"],
+        1: ["medical_center_country_id", "medical_center_city_id", "travelling_to_id", "bordereau"],
         2: ["first_name", "last_name", "date_of_birth", "gender", "marital_status", "nationality_id"],
-        3: ["passport_uid", "national_id", "visa_type", "position_id", "email", "phone"]
+        3: ["passport_uid", "confirm_passport_uid", "passport_issue_date", "passport_expiry_date", "place_of_issue", "national_id", "visa_type", "position_id", "email", "phone"]
     };
 
     const validateStep = (step) => {
@@ -98,6 +103,12 @@ const FormPage = () => {
                 isValid = false;
             }
         });
+
+        // Confirmation check for Step 3
+        if (step === 3 && formData.passport_uid !== formData.confirm_passport_uid) {
+            newErrors.confirm_passport_uid = true;
+            isValid = false;
+        }
 
         setErrors(newErrors);
         return isValid;
@@ -128,14 +139,28 @@ const FormPage = () => {
         setSuccess(false);
 
         try {
-            const response = await api.post("/candidates/register", {
-                ...formData,
-                nationality_id: parseInt(formData.nationality_id),
-                travelling_to_id: parseInt(formData.travelling_to_id),
-                position_id: parseInt(formData.position_id),
-                medical_center_country_id: parseInt(formData.medical_center_country_id),
-                medical_center_city_id: parseInt(formData.medical_center_city_id),
-                amount: parseFloat(formData.amount)
+            const submissionData = new FormData();
+            Object.keys(formData).forEach(key => {
+                if (key === 'confirm_passport_uid') return; // Do not send confirmation field
+                if (key === 'bordereau' && formData[key]) {
+                    submissionData.append(key, formData[key]);
+                } else if (formData[key] !== null && formData[key] !== undefined) {
+                    submissionData.append(key, formData[key]);
+                }
+            });
+
+            // Ensure numeric and other types are correctly appended as strings for FormData but keep logic for integers
+            submissionData.set("nationality_id", parseInt(formData.nationality_id));
+            submissionData.set("travelling_to_id", parseInt(formData.travelling_to_id));
+            submissionData.set("position_id", parseInt(formData.position_id));
+            submissionData.set("medical_center_country_id", parseInt(formData.medical_center_country_id));
+            submissionData.set("medical_center_city_id", parseInt(formData.medical_center_city_id));
+            submissionData.set("amount", parseFloat(formData.amount));
+
+            const response = await api.post("/candidates/register", submissionData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+                }
             });
 
             if (response.status === 201 || response.status === 200) {
@@ -219,6 +244,14 @@ const FormPage = () => {
                                 options={[{ label: "Select Destination", value: "" }, ...gulfOptions]}
                                 error={errors.travelling_to_id}
                             />
+                            <FieldCard
+                                label="Bordereau"
+                                name="bordereau"
+                                type="file"
+                                value={formData.bordereau}
+                                onChange={handleChange}
+                                error={errors.bordereau}
+                            />
                         </div>
                     </div>
                 )}
@@ -299,6 +332,38 @@ const FormPage = () => {
                                 onChange={handleChange}
                                 placeholder="Enter Passport UID"
                                 error={errors.passport_uid}
+                            />
+                            <FieldCard
+                                label="Confirm Passport Number"
+                                name="confirm_passport_uid"
+                                value={formData.confirm_passport_uid}
+                                onChange={handleChange}
+                                placeholder="Re-enter Passport UID"
+                                error={errors.confirm_passport_uid}
+                            />
+                            <FieldCard
+                                label="Passport Issue Date"
+                                name="passport_issue_date"
+                                type="date"
+                                value={formData.passport_issue_date}
+                                onChange={handleChange}
+                                error={errors.passport_issue_date}
+                            />
+                            <FieldCard
+                                label="Passport Expiry Date"
+                                name="passport_expiry_date"
+                                type="date"
+                                value={formData.passport_expiry_date}
+                                onChange={handleChange}
+                                error={errors.passport_expiry_date}
+                            />
+                            <FieldCard
+                                label="Place of Issue"
+                                name="place_of_issue"
+                                value={formData.place_of_issue}
+                                onChange={handleChange}
+                                placeholder="Enter place of issue"
+                                error={errors.place_of_issue}
                             />
                             <FieldCard
                                 label="National ID"
