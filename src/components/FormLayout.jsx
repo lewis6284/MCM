@@ -1,7 +1,7 @@
 import React from "react";
 import BackgroundWatermark from "./BackgroundWatermark";
-import gulfLogo from "../asset/gulflogo.svg";
-import mainLogo from "../asset/logo.png";
+import gulfLogo from "../asset/BVFSlogo.png";
+import mainLogo from "../asset/worldlogo.png";
 
 const FormLayout = ({ children }) => {
     return (

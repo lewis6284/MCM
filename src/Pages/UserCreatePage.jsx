@@ -112,6 +112,7 @@ const UserCreatePage = () => {
                         options={[
                             { label: "Agency", value: "AGENCY" },
                             { label: "Hospital", value: "HOSPITAL" },
+                            { label: "PI", value: "PI" },
                         ]}
                     />
 

@@ -49,7 +49,8 @@ const UserManagementPage = () => {
                                 { label: "All Roles", value: "" },
                                 { label: "Admin", value: "ADMIN" },
                                 { label: "Agency", value: "AGENCY" },
-                                { label: "Hospital", value: "HOSPITAL" }
+                                { label: "Hospital", value: "HOSPITAL" },
+                                { label: "PI", value: "PI" }
                             ]}
                         />
                     </div>
@@ -82,7 +83,8 @@ const UserManagementPage = () => {
                                         <td className="px-8 py-5">
                                             <span className={`px-3 py-1 rounded-full text-xs font-bold ${user.role === 'ADMIN' ? 'bg-purple-100 text-purple-700' :
                                                 user.role === 'HOSPITAL' ? 'bg-blue-100 text-blue-700' :
-                                                    'bg-green-100 text-green-700'
+                                                    user.role === 'PI' ? 'bg-orange-100 text-orange-700' :
+                                                        'bg-green-100 text-green-700'
                                                 }`}>
                                                 {user.role}
                                             </span>

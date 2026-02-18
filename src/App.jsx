@@ -26,8 +26,8 @@ function AppContent() {
 
             {/* Protected Routes */}
             <Route element={<ProtectedRoute />}>
-                {/* Admin Only Routes */}
-                {user?.role === "ADMIN" && (
+                {/* Admin & PI Routes */}
+                {(user?.role === "ADMIN" || user?.role === "PI") && (
                     <>
                         <Route path="/dashboard" element={<DashboardPage />} />
                         <Route path="/dashboard/register-admin" element={<RegisterAdminPage />} />
@@ -54,6 +54,7 @@ function AppContent() {
                     ? (() => {
                         if (user?.role === "AGENCY") return <Navigate to="/form" replace />;
                         if (user?.role === "HOSPITAL") return <Navigate to="/medical-reports" replace />;
+                        if (user?.role === "PI") return <Navigate to="/dashboard" replace />;
                         return <Navigate to="/dashboard" replace />;
                     })()
                     : <Navigate to="/login" replace />
