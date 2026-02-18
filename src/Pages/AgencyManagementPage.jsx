@@ -103,15 +103,17 @@ const AgencyManagementPage = () => {
                     >
                         <List size={18} /> View Agencies
                     </button>
-                    <button
-                        onClick={() => setActiveTab("create")}
-                        className={`px-6 py-3 rounded-lg font-bold transition-all duration-300 flex items-center gap-2 ${activeTab === "create" ? "bg-green-600 text-white shadow-md" : "text-gray-600 hover:bg-gray-200"}`}
-                    >
-                        <Plus size={18} /> Create Agency
-                    </button>
+                    {user?.role !== "PI" && (
+                        <button
+                            onClick={() => setActiveTab("create")}
+                            className={`px-6 py-3 rounded-lg font-bold transition-all duration-300 flex items-center gap-2 ${activeTab === "create" ? "bg-green-600 text-white shadow-md" : "text-gray-600 hover:bg-gray-200"}`}
+                        >
+                            <Plus size={18} /> Create Agency
+                        </button>
+                    )}
                 </div>
 
-                {activeTab === "create" ? (
+                {activeTab === "create" && user?.role !== "PI" ? (
                     /* Create Agency Section */
                     <div className="max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
                         {/* Header Box INSIDE tab content */}
@@ -231,25 +233,29 @@ const AgencyManagementPage = () => {
                                                     </div>
                                                 </td>
                                                 <td className="px-8 py-5 text-right">
-                                                    <div className="flex justify-end gap-3">
-                                                        <button
-                                                            onClick={() => {
-                                                                setEditingAgency(agency);
-                                                                setEditData({ address: agency.address, phone: agency.phone });
-                                                            }}
-                                                            className="p-2.5 text-blue-600 hover:bg-blue-50 bg-gray-50 rounded-xl transition-all border border-transparent hover:border-blue-100"
-                                                            title="Update Details"
-                                                        >
-                                                            <Edit size={20} />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleDeleteAgency(agency.id)}
-                                                            className="p-2.5 text-red-600 hover:bg-red-50 bg-gray-50 rounded-xl transition-all border border-transparent hover:border-red-100"
-                                                            title="Remove Agency"
-                                                        >
-                                                            <Trash2 size={20} />
-                                                        </button>
-                                                    </div>
+                                                    {user?.role !== "PI" ? (
+                                                        <div className="flex justify-end gap-3">
+                                                            <button
+                                                                onClick={() => {
+                                                                    setEditingAgency(agency);
+                                                                    setEditData({ address: agency.address, phone: agency.phone });
+                                                                }}
+                                                                className="p-2.5 text-blue-600 hover:bg-blue-50 bg-gray-50 rounded-xl transition-all border border-transparent hover:border-blue-100"
+                                                                title="Update Details"
+                                                            >
+                                                                <Edit size={20} />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleDeleteAgency(agency.id)}
+                                                                className="p-2.5 text-red-600 hover:bg-red-50 bg-gray-50 rounded-xl transition-all border border-transparent hover:border-red-100"
+                                                                title="Remove Agency"
+                                                            >
+                                                                <Trash2 size={20} />
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-gray-400 text-xs italic">View Only</span>
+                                                    )}
                                                 </td>
                                             </tr>
                                         ))

@@ -1,17 +1,23 @@
 import React from "react";
 import DashboardLayout from "../components/DashboardLayout";
+import { useAuth } from "../context/AuthContext";
 
 const DashboardPage = () => {
+    const { user } = useAuth();
+    const isPI = user?.role === "PI";
+
     return (
         <DashboardLayout>
             <div className="space-y-8">
                 {/* Welcome Card */}
                 <div className="bg-white p-10 rounded-2xl shadow-sm border-l-8 border-green-600">
-                    <h2 className="text-3xl font-extrabold text-gray-900 mb-2">
-                        Welcome back, Admin!
+                    <h2 className="text-3xl font-extrabold text-gray-900 mb-2 font-sans">
+                        Welcome back, {isPI ? "PI Officer" : "Admin"}!
                     </h2>
-                    <p className="text-lg text-gray-600">
-                        You have 12 pending medical examination appointments today.
+                    <p className="text-lg text-gray-600 font-sans">
+                        {isPI
+                            ? "Review pending payments and monitor medical appointments."
+                            : "You have 12 pending medical examination appointments today."}
                     </p>
                 </div>
 

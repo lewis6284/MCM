@@ -15,6 +15,8 @@ import HospitalManagementPage from "./Pages/HospitalManagementPage";
 import PositionManagementPage from "./Pages/PositionManagementPage";
 import MedicalReportPage from "./Pages/MedicalReportPage";
 import HospitalDashboardPage from "./Pages/HospitalDashboardPage";
+import PaymentVerificationPage from "./Pages/PaymentVerificationPage";
+import AppointmentsListPage from "./Pages/AppointmentsListPage";
 
 function AppContent() {
     const { user, isAuthenticated } = useAuth();
@@ -38,7 +40,8 @@ function AppContent() {
                         <Route path="/dashboard/agencies" element={<AgencyManagementPage />} />
                         <Route path="/dashboard/hospitals" element={<HospitalManagementPage />} />
                         <Route path="/dashboard/positions" element={<PositionManagementPage />} />
-                        <Route path="/dashboard/positions" element={<PositionManagementPage />} />
+                        <Route path="/dashboard/payments" element={<PaymentVerificationPage />} />
+                        <Route path="/dashboard/appointments" element={<AppointmentsListPage />} />
                     </>
                 )}
 

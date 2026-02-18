@@ -18,14 +18,21 @@ const Sidebar = () => {
         { name: "Positions", path: "/dashboard/positions", icon: Briefcase },
         { name: "Medical Reports", path: "/medical-reports", icon: ClipboardPlus },
         { name: "Cities", path: "/dashboard/cities", icon: MapPin },
-        { name: "Appointments", path: "/form", icon: FileText },
+        { name: "Appointments", path: "/dashboard/appointments", icon: FileText },
         { name: "Patients", path: "/patients", icon: Users },
         { name: "Register Admin", path: "/dashboard/register-admin", icon: UserPlus },
     ];
 
-    const menuItems = user?.role === "HOSPITAL"
-        ? allMenuItems.filter(item => item.name === "Dashboard")
-        : allMenuItems;
+    let menuItems = [];
+    if (user?.role === "HOSPITAL") {
+        menuItems = allMenuItems.filter(item => item.name === "Dashboard");
+    } else if (user?.role === "PI") {
+        menuItems = allMenuItems.filter(item => ["Dashboard", "Appointments"].includes(item.name));
+        // Add Payment Verification for PI
+        menuItems.push({ name: "Payment Verification", path: "/dashboard/payments", icon: ClipboardPlus });
+    } else {
+        menuItems = allMenuItems;
+    }
 
     return (
         <div className="w-full bg-white h-full flex flex-col border-r border-gray-200 shadow-xl">

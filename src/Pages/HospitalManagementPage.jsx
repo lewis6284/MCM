@@ -153,12 +153,14 @@ const HospitalManagementPage = () => {
                     >
                         <List size={18} /> View Hospitals
                     </button>
-                    <button
-                        onClick={() => setActiveTab("create")}
-                        className={`px-6 py-3 rounded-lg font-bold transition-all duration-300 flex items-center gap-2 ${activeTab === "create" ? "bg-green-600 text-white shadow-md" : "text-gray-600 hover:bg-gray-200"}`}
-                    >
-                        <Plus size={18} /> Add Hospital
-                    </button>
+                    {user?.role !== 'PI' && (
+                        <button
+                            onClick={() => setActiveTab("create")}
+                            className={`px-6 py-3 rounded-lg font-bold transition-all duration-300 flex items-center gap-2 ${activeTab === "create" ? "bg-green-600 text-white shadow-md" : "text-gray-600 hover:bg-gray-200"}`}
+                        >
+                            <Plus size={18} /> Add Hospital
+                        </button>
+                    )}
                 </div>
 
                 {activeTab === "create" ? (
@@ -317,23 +319,27 @@ const HospitalManagementPage = () => {
                                                     </div>
                                                 </td>
                                                 <td className="px-8 py-5 text-right">
-                                                    <div className="flex justify-end gap-3">
-                                                        <button
-                                                            onClick={() => {
-                                                                setEditingHospital(hospital);
-                                                                setEditData({ name: hospital.name, max_daily_candidates: hospital.max_daily_candidates });
-                                                            }}
-                                                            className="p-2.5 text-blue-600 hover:bg-blue-50 bg-gray-50 rounded-xl transition-all"
-                                                        >
-                                                            <Edit size={20} />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleDeleteHospital(hospital.id)}
-                                                            className="p-2.5 text-red-600 hover:bg-red-50 bg-gray-50 rounded-xl transition-all"
-                                                        >
-                                                            <Trash2 size={20} />
-                                                        </button>
-                                                    </div>
+                                                    {user?.role !== 'PI' ? (
+                                                        <div className="flex justify-end gap-3">
+                                                            <button
+                                                                onClick={() => {
+                                                                    setEditingHospital(hospital);
+                                                                    setEditData({ name: hospital.name, max_daily_candidates: hospital.max_daily_candidates });
+                                                                }}
+                                                                className="p-2.5 text-blue-600 hover:bg-blue-50 bg-gray-50 rounded-xl transition-all"
+                                                            >
+                                                                <Edit size={20} />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleDeleteHospital(hospital.id)}
+                                                                className="p-2.5 text-red-600 hover:bg-red-50 bg-gray-50 rounded-xl transition-all"
+                                                            >
+                                                                <Trash2 size={20} />
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-gray-400 text-xs italic">View Only</span>
+                                                    )}
                                                 </td>
                                             </tr>
                                         ))
