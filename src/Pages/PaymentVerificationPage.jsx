@@ -7,6 +7,7 @@ const PaymentVerificationPage = () => {
     const [payments, setPayments] = useState([]);
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(null);
+    const [selectedBordereau, setSelectedBordereau] = useState(null);
 
     const fetchPendingPayments = async () => {
         setLoading(true);
@@ -20,7 +21,6 @@ const PaymentVerificationPage = () => {
             setLoading(false);
         }
     };
-
     useEffect(() => {
         fetchPendingPayments();
     }, []);
@@ -41,18 +41,16 @@ const PaymentVerificationPage = () => {
         }
     };
 
-    const handleDownloadBordereau = async (paymentId) => {
-        try {
-            const response = await api.get(`/payment/bordereau/${paymentId}`, {
-                responseType: 'blob'
-            });
-            const url = window.URL.createObjectURL(new Blob([response.data]));
-            window.open(url, '_blank');
-        } catch (error) {
-            console.error("Error downloading bordereau:", error);
-            alert("Failed to download bordereau file.");
+    const handleViewBordereau = (path) => {
+        if (!path) {
+            alert("No bordereau file available");
+            return;
         }
+        // Construct the full URL for the static file
+        const fullUrl = `http://localhost:3000/uploads/${path}`;
+        setSelectedBordereau(fullUrl);
     };
+    console.log(payments[0])
 
     return (
         <DashboardLayout>
@@ -106,7 +104,7 @@ const PaymentVerificationPage = () => {
                                         </td>
                                         <td className="px-8 py-5 text-right flex justify-end gap-3">
                                             <button
-                                                onClick={() => handleDownloadBordereau(payment.id)}
+                                                onClick={() => handleViewBordereau(payment.bordereau_path)}
                                                 className="inline-flex items-center gap-2 text-blue-600 bg-blue-50 px-4 py-2 rounded-xl text-xs font-bold hover:bg-blue-100 transition-colors"
                                             >
                                                 <Eye size={16} />
@@ -131,6 +129,29 @@ const PaymentVerificationPage = () => {
                         </tbody>
                     </table>
                 </div>
+
+                {/* Bordereau Preview Modal */}
+                {selectedBordereau && (
+                    <div
+                        className="fixed inset-0 bg-black/90 backdrop-blur-sm z-[100] flex items-center justify-center p-4 cursor-zoom-out"
+                        onClick={() => setSelectedBordereau(null)}
+                    >
+                        <div className="relative max-w-5xl w-full max-h-[90vh] flex items-center justify-center animate-in zoom-in-95 duration-300">
+                            <img
+                                src={selectedBordereau}
+                                alt="Bordereau Proof"
+                                className="max-w-full max-h-full object-contain rounded-lg shadow-2xl border-4 border-white/10"
+                                onClick={(e) => e.stopPropagation()}
+                            />
+                            <button
+                                className="absolute top-4 right-4 bg-white/10 hover:bg-white/20 text-white w-12 h-12 rounded-full flex items-center justify-center backdrop-blur-md transition-all border border-white/20"
+                                onClick={() => setSelectedBordereau(null)}
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
         </DashboardLayout>
     );

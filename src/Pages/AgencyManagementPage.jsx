@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from "react";
+import { useAuth } from "../context/AuthContext";
 import DashboardLayout from "../components/DashboardLayout";
 import FieldCard from "../components/FieldCard";
 import api from "../api";
 import { Building2, Plus, List, Edit, Trash2, Mail, Phone, MapPin } from "lucide-react";
 
 const AgencyManagementPage = () => {
+    const { user } = useAuth();
     const [agencies, setAgencies] = useState([]);
     const [activeTab, setActiveTab] = useState("view");
     const [loading, setLoading] = useState(false);

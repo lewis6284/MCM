@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from "react";
+import { useAuth } from "../context/AuthContext";
 import DashboardLayout from "../components/DashboardLayout";
 import FieldCard from "../components/FieldCard";
 import api from "../api";
 import { Hospital, Plus, List, Edit, Trash2, Mail, MapPin, Users, Search } from "lucide-react";
 
 const HospitalManagementPage = () => {
+    const { user } = useAuth();
     const [hospitals, setHospitals] = useState([]);
     const [activeTab, setActiveTab] = useState("view");
     const [loading, setLoading] = useState(false);
@@ -24,6 +26,8 @@ const HospitalManagementPage = () => {
         name: "",
         email: "",
         password: "",
+        phone: "",
+        address: "",
         country_id: "",
         city_id: "",
         max_daily_candidates: ""
@@ -194,6 +198,22 @@ const HospitalManagementPage = () => {
                                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                                 placeholder="••••••••"
                             />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <FieldCard
+                                    label="Phone Number"
+                                    name="phone"
+                                    value={formData.phone}
+                                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                                    placeholder="+257 2222 2222"
+                                />
+                                <FieldCard
+                                    label="Physical Address"
+                                    name="address"
+                                    value={formData.address}
+                                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                                    placeholder="Street, Building, City"
+                                />
+                            </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <FieldCard
                                     label="Country"
