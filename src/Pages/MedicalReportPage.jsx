@@ -22,8 +22,8 @@ const MedicalReportPage = () => {
         pulse: "",
         rr_min: "",
         vision_colour: "Normal",
-        vision_distant_unaided_left: "6/6",
-        vision_distant_unaided_right: "6/6",
+        vision_distant_unaided_left: "",
+        vision_distant_unaided_right: "",
         hearing_left: "Normal",
         hearing_right: "Normal",
         blood_group: "",
@@ -34,10 +34,12 @@ const MedicalReportPage = () => {
         serology_hiv: "Negative",
         serology_hcv: "Negative",
         serology_hbsag: "Negative",
-        radiology_chest_xray: "NAD",
-        system_respiratory: "NAD",
+        radiology_chest_xray: "",
+        system_respiratory: "",
         pregnancy_test: "NEGATIVE"
     });
+
+    const [reportId, setReportId] = useState(null);
 
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState(false);
@@ -135,12 +137,57 @@ const MedicalReportPage = () => {
         return isValid;
     };
 
-    const handleNext = () => {
-        if (validateStep(currentStep)) {
+    const handleNext = async () => {
+        if (!validateStep(currentStep)) {
+            alert("Please fill in all required fields.");
+            return;
+        }
+
+        setLoading(true);
+        try {
+            const payload = new FormData();
+
+            // Log for debugging
+            console.log(`Step ${currentStep} Payload:`, formData);
+
+            if (currentStep === 1) {
+                // Initial POST
+                Object.keys(formData).forEach(key => {
+                    if (key === 'candidate_photo' && formData[key]) {
+                        payload.append('candidate_photo', formData[key]);
+                    } else if (formData[key] !== null && formData[key] !== undefined && formData[key] !== "") {
+                        payload.append(key, formData[key]);
+                    }
+                });
+
+                const response = await api.post("/medical-reports", payload, {
+                    headers: { "Content-Type": "multipart/form-data" }
+                });
+
+                if (response.data?.report?.id) {
+                    setReportId(response.data.report.id);
+                    console.log("Report Created with ID:", response.data.report.id);
+                }
+            } else if (reportId) {
+                // Progressive PATCH
+                const stepData = {};
+                if (currentStep === 2) {
+                    ['vision_colour', 'vision_distant_unaided_left', 'vision_distant_unaided_right', 'hearing_left', 'hearing_right'].forEach(k => stepData[k] = formData[k]);
+                } else if (currentStep === 3) {
+                    ['blood_group', 'blood_haemoglobin', 'thick_film_malaria', 'biochem_rbs', 'biochem_creatinine', 'serology_hiv', 'serology_hcv', 'serology_hbsag'].forEach(k => stepData[k] = formData[k]);
+                }
+
+                await api.patch(`/medical-reports/${reportId}`, stepData);
+                console.log(`Step ${currentStep} Data Patched Successfully`);
+            }
+
             setCurrentStep(prev => prev + 1);
             window.scrollTo({ top: 0, behavior: "smooth" });
-        } else {
-            alert("Please fill in all required fields.");
+        } catch (error) {
+            console.error(`Error saving step ${currentStep}:`, error);
+            alert("Error saving progress: " + (error.response?.data?.message || error.message));
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -151,37 +198,29 @@ const MedicalReportPage = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (!reportId) {
+            alert("Report ID not found. Please complete previous steps first.");
+            return;
+        }
+
         setLoading(true);
-        setSuccess(false);
-
         try {
-            const payload = new FormData();
+            const finalData = {
+                radiology_chest_xray: formData.radiology_chest_xray,
+                system_respiratory: formData.system_respiratory,
+                pregnancy_test: formData.pregnancy_test,
+                fit_status: formData.fit_status
+            };
 
-            // Append all fields to FormData
-            Object.keys(formData).forEach(key => {
-                if (key === 'candidate_photo' && formData[key]) {
-                    payload.append('candidate_photo', formData[key]);
-                } else if (formData[key] !== null && formData[key] !== undefined) {
-                    payload.append(key, formData[key]);
-                }
-            });
+            console.log("Final Step Payload:", finalData);
 
-            // Make sure numbers are sent as numbers or strings depending on backend expectation
-            // FormData sends everything as strings, backend usually handles parsing or we stay consistent
-            // If backend expects specific numeric types, FormData might be tricky if not handled on server
-            // But usually for multipart/form-data, backend parses strings to numbers.
-            // Let's ensure we are sending the correct values.
+            await api.patch(`/medical-reports/${reportId}`, finalData);
 
-            await api.post("/medical-reports", payload, {
-                headers: {
-                    "Content-Type": "multipart/form-data"
-                }
-            });
             setSuccess(true);
-            alert("Medical Report Submitted Successfully!");
+            alert("Medical Report Finalized Successfully!");
         } catch (error) {
-            console.error("Submission Error:", error);
-            alert("Error submitting report: " + (error.response?.data?.message || error.message));
+            console.error("Final Submission Error:", error);
+            alert("Error finalizing report: " + (error.response?.data?.message || error.message));
         } finally {
             setLoading(false);
         }
