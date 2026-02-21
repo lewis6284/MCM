@@ -149,11 +149,11 @@ const MedicalReportPage = () => {
         try {
             console.log(`--- Saving Progress (Step ${step}) ---`);
             let response;
+            const payload = new FormData();
 
             if (step === 1 && !reportId) {
                 // Initial creation
                 console.log("POST: Creating initial report...");
-                const payload = new FormData();
                 Object.keys(formData).forEach(key => {
                     if (key === 'candidate_photo' && formData[key]) {
                         payload.append('candidate_photo', formData[key]);
@@ -171,54 +171,33 @@ const MedicalReportPage = () => {
                     console.log("SUCCESS: Created ID", response.data.report.id);
                 }
             } else if (reportId) {
-                // Progressive updates
+                // Progressive updates - Always use FormData for PATCH to match backend multer
                 console.log(`PATCH: Updating report ${reportId}...`);
-                let patchData;
-                let isMultipart = false;
 
+                let fields = [];
                 if (step === 1) {
-                    isMultipart = true;
-                    patchData = new FormData();
-                    ['booking_id', 'report_expiry_date', 'ghc_code', 'gcc_slip_no', 'height', 'weight', 'bmi', 'bp', 'pulse', 'rr_min'].forEach(k => {
-                        if (formData[k] !== "") patchData.append(k, formData[k]);
-                    });
+                    fields = ['booking_id', 'report_expiry_date', 'ghc_code', 'gcc_slip_no', 'height', 'weight', 'bmi', 'bp', 'pulse', 'rr_min'];
                     if (formData.candidate_photo instanceof File) {
-                        patchData.append('candidate_photo', formData.candidate_photo);
+                        payload.append('candidate_photo', formData.candidate_photo);
                     }
                 } else if (step === 2) {
-                    patchData = {
-                        vision_colour: formData.vision_colour,
-                        vision_distant_unaided_left: formData.vision_distant_unaided_left,
-                        vision_distant_unaided_right: formData.vision_distant_unaided_right,
-                        hearing_left: formData.hearing_left,
-                        hearing_right: formData.hearing_right
-                    };
+                    fields = ['vision_colour', 'vision_distant_unaided_left', 'vision_distant_unaided_right', 'hearing_left', 'hearing_right'];
                 } else if (step === 3) {
-                    patchData = {
-                        blood_group: formData.blood_group,
-                        blood_haemoglobin: formData.blood_haemoglobin,
-                        thick_film_malaria: formData.thick_film_malaria,
-                        biochem_rbs: formData.biochem_rbs,
-                        biochem_creatinine: formData.biochem_creatinine,
-                        serology_hiv: formData.serology_hiv,
-                        serology_hcv: formData.serology_hcv,
-                        serology_hbsag: formData.serology_hbsag
-                    };
+                    fields = ['blood_group', 'blood_haemoglobin', 'thick_film_malaria', 'biochem_rbs', 'biochem_creatinine', 'serology_hiv', 'serology_hcv', 'serology_hbsag'];
                 } else if (step === 4) {
-                    patchData = {
-                        radiology_chest_xray: formData.radiology_chest_xray,
-                        system_respiratory: formData.system_respiratory,
-                        pregnancy_test: formData.pregnancy_test,
-                        fit_status: formData.fit_status
-                    };
+                    fields = ['radiology_chest_xray', 'system_respiratory', 'pregnancy_test', 'fit_status'];
                 }
 
-                if (patchData) {
-                    response = await api.patch(`/medical-reports/${reportId}`, patchData, isMultipart ? {
-                        headers: { "Content-Type": "multipart/form-data" }
-                    } : {});
-                    console.log(`SUCCESS: Step ${step} Patched`);
-                }
+                fields.forEach(k => {
+                    if (formData[k] !== null && formData[k] !== undefined && formData[k] !== "") {
+                        payload.append(k, formData[k]);
+                    }
+                });
+
+                response = await api.patch(`/medical-reports/${reportId}`, payload, {
+                    headers: { "Content-Type": "multipart/form-data" }
+                });
+                console.log(`SUCCESS: Step ${step} Patched with ${fields.length} fields`);
             }
             return response;
         } catch (error) {
@@ -271,14 +250,12 @@ const MedicalReportPage = () => {
     };
 
     const handlePrintPDF = async () => {
-        if (!formData.booking_id) return;
+        if (!reportId) {
+            alert("No report ID found. Please complete the first step.");
+            return;
+        }
         try {
-            // Need the report ID. But we only have booking_id in formData.
-            // The submit response gave us the report object. We should store it.
-            // For now, let's fetch report by booking ID if we don't have report ID
-            const res = await api.get(`/medical-reports/booking/${formData.booking_id}`);
-            const reportId = res.data.id;
-
+            console.log(`Printing PDF for Report ID: ${reportId}`);
             // fetch PDF as blob to include auth headers
             const pdfRes = await api.get(`/medical-reports/${reportId}/pdf`, {
                 responseType: 'blob'
