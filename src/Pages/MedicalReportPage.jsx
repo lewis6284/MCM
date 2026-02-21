@@ -39,14 +39,22 @@ const MedicalReportPage = () => {
         pregnancy_test: "NEGATIVE"
     });
 
-    const [reportId, setReportId] = useState(null);
-
+    const [reportId, setReportId] = useState(() => localStorage.getItem("temp_medical_report_id"));
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState(false);
     const [finalSuccess, setFinalSuccess] = useState(false);
     const [errors, setErrors] = useState({});
     const [searchPassport, setSearchPassport] = useState("");
     const [searching, setSearching] = useState(false);
+
+    // Persist reportId
+    useEffect(() => {
+        if (reportId) {
+            localStorage.setItem("temp_medical_report_id", reportId);
+        } else {
+            localStorage.removeItem("temp_medical_report_id");
+        }
+    }, [reportId]);
 
     // Auto-calculate BMI
     useEffect(() => {
@@ -137,21 +145,14 @@ const MedicalReportPage = () => {
         return isValid;
     };
 
-    const handleNext = async () => {
-        if (!validateStep(currentStep)) {
-            alert("Please fill in all required fields.");
-            return;
-        }
-
-        setLoading(true);
+    const saveProgress = async (step) => {
         try {
-            // Log for debugging
-            console.log(`--- Step ${currentStep} Transition ---`);
-            console.log("Current Form Data:", formData);
+            console.log(`--- Saving Progress (Step ${step}) ---`);
+            let response;
 
-            if (currentStep === 1 && !reportId) {
-                // Initial POST
-                console.log("Performing INITIAL POST to create report...");
+            if (step === 1 && !reportId) {
+                // Initial creation
+                console.log("POST: Creating initial report...");
                 const payload = new FormData();
                 Object.keys(formData).forEach(key => {
                     if (key === 'candidate_photo' && formData[key]) {
@@ -161,53 +162,83 @@ const MedicalReportPage = () => {
                     }
                 });
 
-                const response = await api.post("/medical-reports", payload, {
+                response = await api.post("/medical-reports", payload, {
                     headers: { "Content-Type": "multipart/form-data" }
                 });
 
                 if (response.data?.report?.id) {
                     setReportId(response.data.report.id);
-                    console.log("SUCCESS: Report Created with ID:", response.data.report.id);
+                    console.log("SUCCESS: Created ID", response.data.report.id);
                 }
             } else if (reportId) {
-                // Progressive PATCH
-                console.log(`Performing PATCH for Step ${currentStep} (Report ID: ${reportId})...`);
-
-                let stepData;
+                // Progressive updates
+                console.log(`PATCH: Updating report ${reportId}...`);
+                let patchData;
                 let isMultipart = false;
 
-                if (currentStep === 1) {
-                    // Step 1 Update (if doctor went back)
+                if (step === 1) {
                     isMultipart = true;
-                    stepData = new FormData();
+                    patchData = new FormData();
                     ['booking_id', 'report_expiry_date', 'ghc_code', 'gcc_slip_no', 'height', 'weight', 'bmi', 'bp', 'pulse', 'rr_min'].forEach(k => {
-                        if (formData[k] !== "") stepData.append(k, formData[k]);
+                        if (formData[k] !== "") patchData.append(k, formData[k]);
                     });
                     if (formData.candidate_photo instanceof File) {
-                        stepData.append('candidate_photo', formData.candidate_photo);
+                        patchData.append('candidate_photo', formData.candidate_photo);
                     }
-                } else if (currentStep === 2) {
-                    stepData = {};
-                    ['vision_colour', 'vision_distant_unaided_left', 'vision_distant_unaided_right', 'hearing_left', 'hearing_right'].forEach(k => stepData[k] = formData[k]);
-                } else if (currentStep === 3) {
-                    stepData = {};
-                    ['blood_group', 'blood_haemoglobin', 'thick_film_malaria', 'biochem_rbs', 'biochem_creatinine', 'serology_hiv', 'serology_hcv', 'serology_hbsag'].forEach(k => stepData[k] = formData[k]);
+                } else if (step === 2) {
+                    patchData = {
+                        vision_colour: formData.vision_colour,
+                        vision_distant_unaided_left: formData.vision_distant_unaided_left,
+                        vision_distant_unaided_right: formData.vision_distant_unaided_right,
+                        hearing_left: formData.hearing_left,
+                        hearing_right: formData.hearing_right
+                    };
+                } else if (step === 3) {
+                    patchData = {
+                        blood_group: formData.blood_group,
+                        blood_haemoglobin: formData.blood_haemoglobin,
+                        thick_film_malaria: formData.thick_film_malaria,
+                        biochem_rbs: formData.biochem_rbs,
+                        biochem_creatinine: formData.biochem_creatinine,
+                        serology_hiv: formData.serology_hiv,
+                        serology_hcv: formData.serology_hcv,
+                        serology_hbsag: formData.serology_hbsag
+                    };
+                } else if (step === 4) {
+                    patchData = {
+                        radiology_chest_xray: formData.radiology_chest_xray,
+                        system_respiratory: formData.system_respiratory,
+                        pregnancy_test: formData.pregnancy_test,
+                        fit_status: formData.fit_status
+                    };
                 }
 
-                if (stepData) {
-                    await api.patch(`/medical-reports/${reportId}`, stepData, isMultipart ? {
+                if (patchData) {
+                    response = await api.patch(`/medical-reports/${reportId}`, patchData, isMultipart ? {
                         headers: { "Content-Type": "multipart/form-data" }
                     } : {});
-                    console.log(`SUCCESS: Step ${currentStep} Data Saved`);
+                    console.log(`SUCCESS: Step ${step} Patched`);
                 }
-            } else {
-                console.warn("No Report ID found and current step is not 1. Skipping remote save.");
             }
+            return response;
+        } catch (error) {
+            console.error(`Save Error (Step ${step}):`, error);
+            throw error;
+        }
+    };
 
+    const handleNext = async () => {
+        if (!validateStep(currentStep)) {
+            alert("Please fill in all required fields.");
+            return;
+        }
+
+        setLoading(true);
+        try {
+            await saveProgress(currentStep);
             setCurrentStep(prev => prev + 1);
             window.scrollTo({ top: 0, behavior: "smooth" });
         } catch (error) {
-            console.error(`Error during Step ${currentStep} transition:`, error);
             alert("Error saving progress: " + (error.response?.data?.message || error.message));
         } finally {
             setLoading(false);
@@ -222,27 +253,17 @@ const MedicalReportPage = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!reportId) {
-            alert("Report ID not found. Please complete previous steps first.");
+            alert("Report ID not found. Initial step must be completed first.");
             return;
         }
 
         setLoading(true);
         try {
-            const finalData = {
-                radiology_chest_xray: formData.radiology_chest_xray,
-                system_respiratory: formData.system_respiratory,
-                pregnancy_test: formData.pregnancy_test,
-                fit_status: formData.fit_status
-            };
-
-            console.log("Final Step Payload:", finalData);
-
-            await api.patch(`/medical-reports/${reportId}`, finalData);
-
+            await saveProgress(4);
+            localStorage.removeItem("temp_medical_report_id"); // Clear after successful finalize
             setSuccess(true);
             alert("Medical Report Finalized Successfully!");
         } catch (error) {
-            console.error("Final Submission Error:", error);
             alert("Error finalizing report: " + (error.response?.data?.message || error.message));
         } finally {
             setLoading(false);
