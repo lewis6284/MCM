@@ -21,22 +21,78 @@ const MedicalReportPage = () => {
         bp: "",
         pulse: "",
         rr_min: "",
+        // Vision & Hearing
         vision_colour: "Normal",
         vision_distant_unaided_left: "",
         vision_distant_unaided_right: "",
+        vision_distant_aided_left: "",
+        vision_distant_aided_right: "",
+        vision_near_unaided_left: "",
+        vision_near_unaided_right: "",
+        vision_near_aided_left: "",
+        vision_near_aided_right: "",
         hearing_left: "Normal",
         hearing_right: "Normal",
+        // Systemic Examination
+        system_appearance: "NAD",
+        system_cardiovascular: "NAD",
+        system_respiratory: "NAD",
+        system_ent: "NAD",
+        gi_abdomen: "NAD",
+        gi_hernia: "NAD",
+        gu_genitourinary: "NAD",
+        gu_hydrocele: "NAD",
+        ms_extremities: "NAD",
+        ms_back: "NAD",
+        ms_skin: "NAD",
+        ms_cns: "NAD",
+        ms_deformities: "NAD",
+        // Mental Status
+        mental_appearance: "NAD",
+        mental_behavior: "NAD",
+        mental_speech: "NAD",
+        mental_cognition: "NAD",
+        mental_memory: "NAD",
+        mental_mood: "NAD",
+        mental_orientation: "NAD",
+        mental_concentration: "NAD",
+        mental_thoughts: "NAD",
+        // Laboratory
         blood_group: "",
         blood_haemoglobin: "",
         thick_film_malaria: "Absent",
+        thick_film_microfilaria: "Absent",
         biochem_rbs: "",
         biochem_creatinine: "",
+        biochem_lft: "Normal",
         serology_hiv: "Negative",
         serology_hcv: "Negative",
         serology_hbsag: "Negative",
-        radiology_chest_xray: "",
-        system_respiratory: "",
-        pregnancy_test: "NEGATIVE"
+        serology_vdrl: "Negative",
+        serology_tpha: "Negative",
+        serology_pregnancy: "Negative",
+        urine_sugar: "Negative",
+        urine_albumin: "Negative",
+        stool_helminthes: "Absent",
+        stool_ova: "Absent",
+        stool_cyst: "Absent",
+        stool_others: "",
+        // Radiology
+        radiology_chest_xray: "NAD",
+        radiology_comment: "",
+        // Vaccinations
+        vac_polio: false,
+        vac_polio_date: "",
+        vac_mmr1: false,
+        vac_mmr1_date: "",
+        vac_mmr2: false,
+        vac_mmr2_date: "",
+        vac_meningococcal: false,
+        vac_meningococcal_date: "",
+        vac_covid19: false,
+        vac_covid19_date: "",
+        // Meta
+        remarks: ""
     });
 
     const [reportId, setReportId] = useState(() => localStorage.getItem("temp_medical_report_id"));
@@ -181,11 +237,41 @@ const MedicalReportPage = () => {
                         payload.append('candidate_photo', formData.candidate_photo);
                     }
                 } else if (step === 2) {
-                    fields = ['vision_colour', 'vision_distant_unaided_left', 'vision_distant_unaided_right', 'hearing_left', 'hearing_right'];
+                    // Systemic & Mental Status
+                    fields = [
+                        'system_appearance', 'system_cardiovascular', 'system_respiratory', 'system_ent',
+                        'gi_abdomen', 'gi_hernia', 'gu_genitourinary', 'gu_hydrocele',
+                        'ms_extremities', 'ms_back', 'ms_skin', 'ms_cns', 'ms_deformities',
+                        'mental_appearance', 'mental_behavior', 'mental_speech', 'mental_cognition',
+                        'mental_memory', 'mental_mood', 'mental_orientation', 'mental_concentration', 'mental_thoughts'
+                    ];
                 } else if (step === 3) {
-                    fields = ['blood_group', 'blood_haemoglobin', 'thick_film_malaria', 'biochem_rbs', 'biochem_creatinine', 'serology_hiv', 'serology_hcv', 'serology_hbsag'];
+                    // Vision & Hearing
+                    fields = [
+                        'vision_colour', 'vision_distant_unaided_left', 'vision_distant_unaided_right',
+                        'vision_distant_aided_left', 'vision_distant_aided_right',
+                        'vision_near_unaided_left', 'vision_near_unaided_right',
+                        'vision_near_aided_left', 'vision_near_aided_right',
+                        'hearing_left', 'hearing_right'
+                    ];
                 } else if (step === 4) {
-                    fields = ['radiology_chest_xray', 'system_respiratory', 'pregnancy_test', 'fit_status'];
+                    // Laboratory Results
+                    fields = [
+                        'blood_group', 'blood_haemoglobin', 'thick_film_malaria', 'thick_film_microfilaria',
+                        'biochem_rbs', 'biochem_creatinine', 'biochem_lft',
+                        'serology_hiv', 'serology_hcv', 'serology_hbsag', 'serology_vdrl', 'serology_tpha', 'serology_pregnancy',
+                        'urine_sugar', 'urine_albumin',
+                        'stool_helminthes', 'stool_ova', 'stool_cyst', 'stool_others'
+                    ];
+                } else if (step === 5) {
+                    // Radiology, Vaccines & Final
+                    fields = [
+                        'radiology_chest_xray', 'radiology_comment',
+                        'vac_polio', 'vac_polio_date', 'vac_mmr1', 'vac_mmr1_date',
+                        'vac_mmr2', 'vac_mmr2_date', 'vac_meningococcal', 'vac_meningococcal_date',
+                        'vac_covid19', 'vac_covid19_date',
+                        'fit_status', 'remarks'
+                    ];
                 }
 
                 fields.forEach(k => {
@@ -238,7 +324,7 @@ const MedicalReportPage = () => {
 
         setLoading(true);
         try {
-            await saveProgress(4);
+            await saveProgress(5);
             localStorage.removeItem("temp_medical_report_id"); // Clear after successful finalize
             setSuccess(true);
             alert("Medical Report Finalized Successfully!");
@@ -394,22 +480,21 @@ const MedicalReportPage = () => {
                     ></div>
                 </div>
                 <div className="flex justify-between mt-3 text-xs font-semibold text-gray-400">
-                    <span className={currentStep >= 1 ? "text-green-600 transition-colors duration-300" : ""}>VITALS</span>
-                    <span className={currentStep >= 2 ? "text-green-600 transition-colors duration-300" : ""}>VISION/HEARING</span>
-                    <span className={currentStep >= 3 ? "text-green-600 transition-colors duration-300" : ""}>LAB</span>
-                    <span className={currentStep >= 4 ? "text-green-600 transition-colors duration-300" : ""}>FINAL</span>
+                    <span className={currentStep >= 1 ? "text-green-600 transition-colors duration-300" : ""}>OVERVIEW</span>
+                    <span className={currentStep >= 2 ? "text-green-600 transition-colors duration-300" : ""}>SYSTEMIC</span>
+                    <span className={currentStep >= 3 ? "text-green-600 transition-colors duration-300" : ""}>VISION</span>
+                    <span className={currentStep >= 4 ? "text-green-600 transition-colors duration-300" : ""}>LAB</span>
+                    <span className={currentStep >= 5 ? "text-green-600 transition-colors duration-300" : ""}>FINAL</span>
                 </div>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-8 pb-20">
 
-                {/* STEP 1: General & Vitals */}
+                {/* STEP 1: Overview & Vitals */}
                 {currentStep === 1 && (
-                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <div className="bg-white p-6 rounded-lg shadow-sm mb-6">
-                            <h2 className="text-xl font-bold text-gray-800 border-b pb-2 mb-4">Examination Details</h2>
-
-                            {/* Passport Search Section */}
+                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
+                        <div className="bg-white p-6 rounded-lg shadow-sm">
+                            <h2 className="text-xl font-bold text-gray-800 border-b pb-2 mb-4">I. Examination Details</h2>
                             <div className="mb-6 bg-blue-50 p-4 rounded-xl border border-blue-100">
                                 <label className="block text-sm font-medium text-blue-800 mb-2">Search Booking by Passport</label>
                                 <div className="flex gap-2">
@@ -444,78 +529,192 @@ const MedicalReportPage = () => {
                                 </div>
                                 <FieldCard label="Booking ID" name="booking_id" value={formData.booking_id} onChange={handleChange} placeholder="e.g. 12" error={errors.booking_id} type="number" />
                                 <FieldCard label="Expiry Date" name="report_expiry_date" value={formData.report_expiry_date} onChange={handleChange} type="date" error={errors.report_expiry_date} />
-                                <FieldCard label="GHC Code" name="ghc_code" value={formData.ghc_code} onChange={handleChange} placeholder="e.g. 25/01/02" error={errors.ghc_code} />
-                                <FieldCard label="GCC Slip No" name="gcc_slip_no" value={formData.gcc_slip_no} onChange={handleChange} placeholder="e.g. 113230120267713" error={errors.gcc_slip_no} />
+                                <FieldCard label="GHC Code" name="ghc_code" value={formData.ghc_code} onChange={handleChange} placeholder="GHC-2026-001" error={errors.ghc_code} />
+                                <FieldCard label="GCC Slip No" name="gcc_slip_no" value={formData.gcc_slip_no} onChange={handleChange} placeholder="GCC-123456" error={errors.gcc_slip_no} />
                             </div>
                         </div>
 
                         <div className="bg-white p-6 rounded-lg shadow-sm">
-                            <h2 className="text-xl font-bold text-gray-800 border-b pb-2 mb-4">Vitals & Anthropometry</h2>
+                            <h2 className="text-xl font-bold text-gray-800 border-b pb-2 mb-4">II. Vitals & Anthropometry</h2>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                 <FieldCard label="Height (m)" name="height" value={formData.height} onChange={handleChange} placeholder="1.75" type="number" step="0.01" />
-                                <FieldCard label="Weight (kg)" name="weight" value={formData.weight} onChange={handleChange} placeholder="75.5" type="number" step="0.1" />
+                                <FieldCard label="Weight (kg)" name="weight" value={formData.weight} onChange={handleChange} placeholder="70.5" type="number" step="0.1" />
                                 <FieldCard label="BMI" name="bmi" value={formData.bmi} disabled={true} placeholder="Auto-calculated" />
                                 <FieldCard label="Blood Pressure" name="bp" value={formData.bp} onChange={handleChange} placeholder="120/80" />
                                 <FieldCard label="Pulse (bpm)" name="pulse" value={formData.pulse} onChange={handleChange} placeholder="72" type="number" />
-                                <FieldCard label="RR (min)" name="rr_min" value={formData.rr_min} onChange={handleChange} placeholder="20" type="number" />
+                                <FieldCard label="RR (min)" name="rr_min" value={formData.rr_min} onChange={handleChange} placeholder="16" type="number" />
                             </div>
                         </div>
                     </div>
                 )}
 
-                {/* STEP 2: Vision & Hearing */}
+                {/* STEP 2: Systemic & Mental Status */}
                 {currentStep === 2 && (
-                    <div className="bg-white p-6 rounded-lg shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <h2 className="text-xl font-bold text-gray-800 border-b pb-2 mb-4">Vision & Hearing</h2>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <FieldCard label="Color Vision" name="vision_colour" value={formData.vision_colour} onChange={handleChange} options={["Normal", "Abnormal"]} />
-                            <div className="hidden md:block"></div>
-                            <FieldCard label="Vision Left (Unaided)" name="vision_distant_unaided_left" value={formData.vision_distant_unaided_left} onChange={handleChange} placeholder="6/6" />
-                            <FieldCard label="Vision Right (Unaided)" name="vision_distant_unaided_right" value={formData.vision_distant_unaided_right} onChange={handleChange} placeholder="6/6" />
-                            <FieldCard label="Hearing Left" name="hearing_left" value={formData.hearing_left} onChange={handleChange} options={["Normal", "Abnormal"]} />
-                            <FieldCard label="Hearing Right" name="hearing_right" value={formData.hearing_right} onChange={handleChange} options={["Normal", "Abnormal"]} />
+                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
+                        <div className="bg-white p-6 rounded-lg shadow-sm">
+                            <h2 className="text-xl font-bold text-gray-800 border-b pb-2 mb-4">III. Physical Examination</h2>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <FieldCard label="Appearance" name="system_appearance" value={formData.system_appearance} onChange={handleChange} options={["NAD", "Abnormal"]} />
+                                <FieldCard label="Cardiovascular" name="system_cardiovascular" value={formData.system_cardiovascular} onChange={handleChange} options={["NAD", "Abnormal"]} />
+                                <FieldCard label="Respiratory" name="system_respiratory" value={formData.system_respiratory} onChange={handleChange} options={["NAD", "Abnormal"]} />
+                                <FieldCard label="ENT" name="system_ent" value={formData.system_ent} onChange={handleChange} options={["NAD", "Abnormal"]} />
+                                <FieldCard label="Abdomen" name="gi_abdomen" value={formData.gi_abdomen} onChange={handleChange} options={["NAD", "Abnormal"]} />
+                                <FieldCard label="Hernia" name="gi_hernia" value={formData.gi_hernia} onChange={handleChange} options={["NAD", "Abnormal"]} />
+                                <FieldCard label="Genitourinary" name="gu_genitourinary" value={formData.gu_genitourinary} onChange={handleChange} options={["NAD", "Abnormal"]} />
+                                <FieldCard label="Hydrocele" name="gu_hydrocele" value={formData.gu_hydrocele} onChange={handleChange} options={["NAD", "Abnormal"]} />
+                                <FieldCard label="Extremities" name="ms_extremities" value={formData.ms_extremities} onChange={handleChange} options={["NAD", "Abnormal"]} />
+                                <FieldCard label="Back" name="ms_back" value={formData.ms_back} onChange={handleChange} options={["NAD", "Abnormal"]} />
+                                <FieldCard label="Skin" name="ms_skin" value={formData.ms_skin} onChange={handleChange} options={["NAD", "Abnormal"]} />
+                                <FieldCard label="CNS" name="ms_cns" value={formData.ms_cns} onChange={handleChange} options={["NAD", "Abnormal"]} />
+                                <FieldCard label="Deformities" name="ms_deformities" value={formData.ms_deformities} onChange={handleChange} options={["NAD", "Abnormal"]} />
+                            </div>
+                        </div>
+
+                        <div className="bg-white p-6 rounded-lg shadow-sm">
+                            <h2 className="text-xl font-bold text-gray-800 border-b pb-2 mb-4">IV. Mental Status Examination</h2>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <FieldCard label="Mental Appearance" name="mental_appearance" value={formData.mental_appearance} onChange={handleChange} options={["NAD", "Abnormal"]} />
+                                <FieldCard label="Behavior" name="mental_behavior" value={formData.mental_behavior} onChange={handleChange} options={["NAD", "Abnormal"]} />
+                                <FieldCard label="Speech" name="mental_speech" value={formData.mental_speech} onChange={handleChange} options={["NAD", "Abnormal"]} />
+                                <FieldCard label="Cognition" name="mental_cognition" value={formData.mental_cognition} onChange={handleChange} options={["NAD", "Abnormal"]} />
+                                <FieldCard label="Memory" name="mental_memory" value={formData.mental_memory} onChange={handleChange} options={["NAD", "Abnormal"]} />
+                                <FieldCard label="Mood" name="mental_mood" value={formData.mental_mood} onChange={handleChange} options={["NAD", "Abnormal"]} />
+                                <FieldCard label="Orientation" name="mental_orientation" value={formData.mental_orientation} onChange={handleChange} options={["NAD", "Abnormal"]} />
+                                <FieldCard label="Concentration" name="mental_concentration" value={formData.mental_concentration} onChange={handleChange} options={["NAD", "Abnormal"]} />
+                                <FieldCard label="Thoughts" name="mental_thoughts" value={formData.mental_thoughts} onChange={handleChange} options={["NAD", "Abnormal"]} />
+                            </div>
                         </div>
                     </div>
                 )}
 
-                {/* STEP 3: Laboratory Results */}
+                {/* STEP 3: Vision & Hearing */}
                 {currentStep === 3 && (
                     <div className="bg-white p-6 rounded-lg shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <h2 className="text-xl font-bold text-gray-800 border-b pb-2 mb-4">Laboratory Results</h2>
-
-                        <h3 className="font-semibold text-gray-700 mb-3">Haematology</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                            <FieldCard label="Blood Group" name="blood_group" value={formData.blood_group} onChange={handleChange} options={["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"]} />
-                            <FieldCard label="Haemoglobin (g/dL)" name="blood_haemoglobin" value={formData.blood_haemoglobin} onChange={handleChange} placeholder="14.5" />
-                            <FieldCard label="Malaria" name="thick_film_malaria" value={formData.thick_film_malaria} onChange={handleChange} options={["Absent", "Present"]} />
-                        </div>
-
-                        <h3 className="font-semibold text-gray-700 mb-3">Biochemistry</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                            <FieldCard label="RBS (mmol/L)" name="biochem_rbs" value={formData.biochem_rbs} onChange={handleChange} placeholder="4.8" />
-                            <FieldCard label="Creatinine (µmol/L)" name="biochem_creatinine" value={formData.biochem_creatinine} onChange={handleChange} placeholder="69.0" />
-                        </div>
-
-                        <h3 className="font-semibold text-gray-700 mb-3">Serology</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <FieldCard label="HIV" name="serology_hiv" value={formData.serology_hiv} onChange={handleChange} options={["Negative", "Positive"]} />
-                            <FieldCard label="HCV" name="serology_hcv" value={formData.serology_hcv} onChange={handleChange} options={["Negative", "Positive"]} />
-                            <FieldCard label="HBsAg" name="serology_hbsag" value={formData.serology_hbsag} onChange={handleChange} options={["Negative", "Positive"]} />
+                        <h2 className="text-xl font-bold text-gray-800 border-b pb-2 mb-4">V. Visual Acuity & Hearing</h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div className="space-y-4">
+                                <h3 className="font-bold text-gray-700 underline">Distant Vision</h3>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <FieldCard label="Left (Unaided)" name="vision_distant_unaided_left" value={formData.vision_distant_unaided_left} onChange={handleChange} placeholder="6/6" />
+                                    <FieldCard label="Right (Unaided)" name="vision_distant_unaided_right" value={formData.vision_distant_unaided_right} onChange={handleChange} placeholder="6/6" />
+                                    <FieldCard label="Left (Aided)" name="vision_distant_aided_left" value={formData.vision_distant_aided_left} onChange={handleChange} placeholder="6/6" />
+                                    <FieldCard label="Right (Aided)" name="vision_distant_aided_right" value={formData.vision_distant_aided_right} onChange={handleChange} placeholder="6/6" />
+                                </div>
+                            </div>
+                            <div className="space-y-4">
+                                <h3 className="font-bold text-gray-700 underline">Near Vision</h3>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <FieldCard label="Left (Unaided)" name="vision_near_unaided_left" value={formData.vision_near_unaided_left} onChange={handleChange} placeholder="20/20" />
+                                    <FieldCard label="Right (Unaided)" name="vision_near_unaided_right" value={formData.vision_near_unaided_right} onChange={handleChange} placeholder="20/20" />
+                                    <FieldCard label="Left (Aided)" name="vision_near_aided_left" value={formData.vision_near_aided_left} onChange={handleChange} placeholder="20/20" />
+                                    <FieldCard label="Right (Aided)" name="vision_near_aided_right" value={formData.vision_near_aided_right} onChange={handleChange} placeholder="20/20" />
+                                </div>
+                            </div>
+                            <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t">
+                                <FieldCard label="Color Vision" name="vision_colour" value={formData.vision_colour} onChange={handleChange} options={["Normal", "Abnormal"]} />
+                                <FieldCard label="Hearing Left" name="hearing_left" value={formData.hearing_left} onChange={handleChange} options={["Normal", "Abnormal"]} />
+                                <FieldCard label="Hearing Right" name="hearing_right" value={formData.hearing_right} onChange={handleChange} options={["Normal", "Abnormal"]} />
+                            </div>
                         </div>
                     </div>
                 )}
 
-                {/* STEP 4: Radiology & Final Assessment */}
+                {/* STEP 4: Laboratory Results */}
                 {currentStep === 4 && (
-                    <div className="bg-white p-6 rounded-lg shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <h2 className="text-xl font-bold text-gray-800 border-b pb-2 mb-4">Radiology & Final Assessment</h2>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <FieldCard label="Chest X-Ray" name="radiology_chest_xray" value={formData.radiology_chest_xray} onChange={handleChange} placeholder="NAD" />
-                            <FieldCard label="Respiratory System" name="system_respiratory" value={formData.system_respiratory} onChange={handleChange} placeholder="NAD" />
-                            <FieldCard label="Pregnancy Test" name="pregnancy_test" value={formData.pregnancy_test} onChange={handleChange} options={["NEGATIVE", "POSITIVE", "N/A"]} />
+                    <div className="bg-white p-6 rounded-lg shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
+                        <h2 className="text-xl font-bold text-gray-800 border-b pb-2 mb-4">VI. Laboratory Investigation</h2>
 
-                            <div className="md:col-span-2 mt-4 p-4 bg-gray-50 rounded-xl border border-gray-200">
-                                <h3 className="text-lg font-bold text-gray-900 mb-4">Overall Fitness Status</h3>
+                        <div className="space-y-4">
+                            <h3 className="font-bold text-gray-700 underline">Haematology & Parasitology</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                <FieldCard label="Blood Group" name="blood_group" value={formData.blood_group} onChange={handleChange} options={["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"]} />
+                                <FieldCard label="Hb (g/dL)" name="blood_haemoglobin" value={formData.blood_haemoglobin} onChange={handleChange} placeholder="14.5" />
+                                <FieldCard label="Malaria" name="thick_film_malaria" value={formData.thick_film_malaria} onChange={handleChange} options={["Absent", "Present"]} />
+                                <FieldCard label="Microfilaria" name="thick_film_microfilaria" value={formData.thick_film_microfilaria} onChange={handleChange} options={["Absent", "Present"]} />
+                            </div>
+                        </div>
+
+                        <div className="space-y-4 pt-4 border-t">
+                            <h3 className="font-bold text-gray-700 underline">Biochemistry</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <FieldCard label="RBS (mg/dL)" name="biochem_rbs" value={formData.biochem_rbs} onChange={handleChange} placeholder="95" />
+                                <FieldCard label="Creatinine (mg/dL)" name="biochem_creatinine" value={formData.biochem_creatinine} onChange={handleChange} placeholder="1.0" />
+                                <FieldCard label="LFT" name="biochem_lft" value={formData.biochem_lft} onChange={handleChange} options={["Normal", "Abnormal"]} />
+                            </div>
+                        </div>
+
+                        <div className="space-y-4 pt-4 border-t">
+                            <h3 className="font-bold text-gray-700 underline">Serology</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <FieldCard label="HIV 1 & 2" name="serology_hiv" value={formData.serology_hiv} onChange={handleChange} options={["Negative", "Positive"]} />
+                                <FieldCard label="HCV" name="serology_hcv" value={formData.serology_hcv} onChange={handleChange} options={["Negative", "Positive"]} />
+                                <FieldCard label="HBsAg" name="serology_hbsag" value={formData.serology_hbsag} onChange={handleChange} options={["Negative", "Positive"]} />
+                                <FieldCard label="VDRL" name="serology_vdrl" value={formData.serology_vdrl} onChange={handleChange} options={["Negative", "Positive"]} />
+                                <FieldCard label="TPHA" name="serology_tpha" value={formData.serology_tpha} onChange={handleChange} options={["Negative", "Positive"]} />
+                                <FieldCard label="Pregnancy" name="serology_pregnancy" value={formData.serology_pregnancy} onChange={handleChange} options={["Negative", "Positive", "N/A"]} />
+                            </div>
+                        </div>
+
+                        <div className="space-y-4 pt-4 border-t">
+                            <h3 className="font-bold text-gray-700 underline">Urine & Stool</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                <FieldCard label="Urine Sugar" name="urine_sugar" value={formData.urine_sugar} onChange={handleChange} options={["Negative", "Positive"]} />
+                                <FieldCard label="Urine Albumin" name="urine_albumin" value={formData.urine_albumin} onChange={handleChange} options={["Negative", "Positive"]} />
+                                <FieldCard label="Helminthes" name="stool_helminthes" value={formData.stool_helminthes} onChange={handleChange} options={["Absent", "Present"]} />
+                                <FieldCard label="Stool Ova" name="stool_ova" value={formData.stool_ova} onChange={handleChange} options={["Absent", "Present"]} />
+                                <FieldCard label="Stool Cyst" name="stool_cyst" value={formData.stool_cyst} onChange={handleChange} options={["Absent", "Present"]} />
+                                <div className="md:col-span-3">
+                                    <FieldCard label="Stool Others" name="stool_others" value={formData.stool_others} onChange={handleChange} placeholder="e.g. Normal" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* STEP 5: Radiology, Vaccinations & Final Assessment */}
+                {currentStep === 5 && (
+                    <div className="bg-white p-6 rounded-lg shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
+                        <div>
+                            <h2 className="text-xl font-bold text-gray-800 border-b pb-2 mb-4">VII. Radiology</h2>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <FieldCard label="Chest X-Ray" name="radiology_chest_xray" value={formData.radiology_chest_xray} onChange={handleChange} options={["NAD", "Abnormal"]} />
+                                <FieldCard label="Radiology Comment" name="radiology_comment" value={formData.radiology_comment} onChange={handleChange} placeholder="e.g. Clear lung fields" />
+                            </div>
+                        </div>
+
+                        <div className="pt-4 border-t">
+                            <h2 className="text-xl font-bold text-gray-800 pb-2 mb-4">VIII. Vaccination Status</h2>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
+                                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                                    <FieldCard label="Polio" name="vac_polio" value={formData.vac_polio} onChange={(e) => setFormData(p => ({ ...p, vac_polio: e.target.checked }))} type="checkbox" />
+                                    <input type="date" name="vac_polio_date" value={formData.vac_polio_date} onChange={handleChange} className="p-2 border rounded-lg text-sm" />
+                                </div>
+                                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                                    <FieldCard label="MMR 1" name="vac_mmr1" value={formData.vac_mmr1} onChange={(e) => setFormData(p => ({ ...p, vac_mmr1: e.target.checked }))} type="checkbox" />
+                                    <input type="date" name="vac_mmr1_date" value={formData.vac_mmr1_date} onChange={handleChange} className="p-2 border rounded-lg text-sm" />
+                                </div>
+                                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                                    <FieldCard label="MMR 2" name="vac_mmr2" value={formData.vac_mmr2} onChange={(e) => setFormData(p => ({ ...p, vac_mmr2: e.target.checked }))} type="checkbox" />
+                                    <input type="date" name="vac_mmr2_date" value={formData.vac_mmr2_date} onChange={handleChange} className="p-2 border rounded-lg text-sm" />
+                                </div>
+                                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                                    <FieldCard label="Meningococcal" name="vac_meningococcal" value={formData.vac_meningococcal} onChange={(e) => setFormData(p => ({ ...p, vac_meningococcal: e.target.checked }))} type="checkbox" />
+                                    <input type="date" name="vac_meningococcal_date" value={formData.vac_meningococcal_date} onChange={handleChange} className="p-2 border rounded-lg text-sm" />
+                                </div>
+                                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl md:col-span-2">
+                                    <FieldCard label="COVID-19" name="vac_covid19" value={formData.vac_covid19} onChange={(e) => setFormData(p => ({ ...p, vac_covid19: e.target.checked }))} type="checkbox" />
+                                    <input type="date" name="vac_covid19_date" value={formData.vac_covid19_date} onChange={handleChange} className="p-2 border rounded-lg text-sm" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="pt-4 border-t">
+                            <h2 className="text-xl font-bold text-gray-800 pb-2 mb-4">IX. Final Assessment</h2>
+                            <div className="p-6 bg-green-50 rounded-2xl border-2 border-green-100 italic mb-6">
+                                <FieldCard label="Overall Remarks" name="remarks" value={formData.remarks} onChange={handleChange} placeholder="e.g. Candidate is physically and mentally fit for travel." />
+                            </div>
+                            <div className="p-6 bg-white rounded-2xl border-2 border-gray-100 shadow-inner">
+                                <h3 className="text-lg font-bold text-gray-900 mb-4">Fitness Decision</h3>
                                 <FieldCard
                                     label="Candidate Fit Status"
                                     name="fit_status"
