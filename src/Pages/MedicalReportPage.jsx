@@ -145,13 +145,14 @@ const MedicalReportPage = () => {
 
         setLoading(true);
         try {
-            const payload = new FormData();
-
             // Log for debugging
-            console.log(`Step ${currentStep} Payload:`, formData);
+            console.log(`--- Step ${currentStep} Transition ---`);
+            console.log("Current Form Data:", formData);
 
-            if (currentStep === 1) {
+            if (currentStep === 1 && !reportId) {
                 // Initial POST
+                console.log("Performing INITIAL POST to create report...");
+                const payload = new FormData();
                 Object.keys(formData).forEach(key => {
                     if (key === 'candidate_photo' && formData[key]) {
                         payload.append('candidate_photo', formData[key]);
@@ -166,25 +167,47 @@ const MedicalReportPage = () => {
 
                 if (response.data?.report?.id) {
                     setReportId(response.data.report.id);
-                    console.log("Report Created with ID:", response.data.report.id);
+                    console.log("SUCCESS: Report Created with ID:", response.data.report.id);
                 }
             } else if (reportId) {
                 // Progressive PATCH
-                const stepData = {};
-                if (currentStep === 2) {
+                console.log(`Performing PATCH for Step ${currentStep} (Report ID: ${reportId})...`);
+
+                let stepData;
+                let isMultipart = false;
+
+                if (currentStep === 1) {
+                    // Step 1 Update (if doctor went back)
+                    isMultipart = true;
+                    stepData = new FormData();
+                    ['booking_id', 'report_expiry_date', 'ghc_code', 'gcc_slip_no', 'height', 'weight', 'bmi', 'bp', 'pulse', 'rr_min'].forEach(k => {
+                        if (formData[k] !== "") stepData.append(k, formData[k]);
+                    });
+                    if (formData.candidate_photo instanceof File) {
+                        stepData.append('candidate_photo', formData.candidate_photo);
+                    }
+                } else if (currentStep === 2) {
+                    stepData = {};
                     ['vision_colour', 'vision_distant_unaided_left', 'vision_distant_unaided_right', 'hearing_left', 'hearing_right'].forEach(k => stepData[k] = formData[k]);
                 } else if (currentStep === 3) {
+                    stepData = {};
                     ['blood_group', 'blood_haemoglobin', 'thick_film_malaria', 'biochem_rbs', 'biochem_creatinine', 'serology_hiv', 'serology_hcv', 'serology_hbsag'].forEach(k => stepData[k] = formData[k]);
                 }
 
-                await api.patch(`/medical-reports/${reportId}`, stepData);
-                console.log(`Step ${currentStep} Data Patched Successfully`);
+                if (stepData) {
+                    await api.patch(`/medical-reports/${reportId}`, stepData, isMultipart ? {
+                        headers: { "Content-Type": "multipart/form-data" }
+                    } : {});
+                    console.log(`SUCCESS: Step ${currentStep} Data Saved`);
+                }
+            } else {
+                console.warn("No Report ID found and current step is not 1. Skipping remote save.");
             }
 
             setCurrentStep(prev => prev + 1);
             window.scrollTo({ top: 0, behavior: "smooth" });
         } catch (error) {
-            console.error(`Error saving step ${currentStep}:`, error);
+            console.error(`Error during Step ${currentStep} transition:`, error);
             alert("Error saving progress: " + (error.response?.data?.message || error.message));
         } finally {
             setLoading(false);
