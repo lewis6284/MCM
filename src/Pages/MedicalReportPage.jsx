@@ -12,9 +12,6 @@ const MedicalReportPage = () => {
         booking_id: "",
         candidate_photo: null,
         fit_status: "FIT",
-        report_expiry_date: "",
-        ghc_code: "",
-        gcc_slip_no: "",
         height: "",
         weight: "",
         bmi: "",
@@ -200,9 +197,6 @@ const MedicalReportPage = () => {
 
         if (step === 1) {
             if (!formData.booking_id) { newErrors.booking_id = true; isValid = false; }
-            if (!formData.report_expiry_date) { newErrors.report_expiry_date = true; isValid = false; }
-            if (!formData.ghc_code) { newErrors.ghc_code = true; isValid = false; }
-            if (!formData.gcc_slip_no) { newErrors.gcc_slip_no = true; isValid = false; }
         }
 
         setErrors(newErrors);
@@ -498,15 +492,14 @@ const MedicalReportPage = () => {
 
             <form onSubmit={handleSubmit} className="space-y-8 pb-20">
 
-                {/* STEP 1: Overview & Vitals */}
+                {/* STEP 1: Identification & Vitals */}
                 {currentStep === 1 && (
                     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
                         <div className="bg-white p-6 rounded-lg shadow-sm">
-                            <h2 className="text-xl font-bold text-gray-800 border-b pb-2 mb-6">I. Examination Details</h2>
+                            <h2 className="text-xl font-bold text-gray-800 border-b pb-2 mb-6">I. Candidate Identification</h2>
 
-                            {/* Candidate Summary Card (shown if identified) */}
                             {candidateInfo ? (
-                                <div className="mb-8 bg-green-50 p-6 rounded-2xl border border-green-100 flex items-center gap-6 relative overflow-hidden">
+                                <div className="bg-green-50 p-6 rounded-2xl border border-green-100 flex items-center gap-6 relative overflow-hidden shadow-sm">
                                     <div className="absolute top-0 right-0 p-4">
                                         <span className="bg-green-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-sm">
                                             Booking ID: #{formData.booking_id}
@@ -540,9 +533,9 @@ const MedicalReportPage = () => {
                                     </div>
                                 </div>
                             ) : (
-                                /* Manual Search (only if not from link) */
-                                <div className="mb-10 bg-blue-50 p-6 rounded-2xl border border-blue-100">
-                                    <label className="block text-sm font-bold text-blue-800 mb-2 tracking-wide uppercase">Search Booking</label>
+                                /* Manual Search (only if not found or link has no params) */
+                                <div className="bg-blue-50 p-6 rounded-2xl border border-blue-100">
+                                    <label className="block text-sm font-bold text-blue-800 mb-2 tracking-wide uppercase">Find Booking by Passport</label>
                                     <div className="flex gap-3">
                                         <div className="relative flex-1">
                                             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-400" size={20} />
@@ -566,13 +559,32 @@ const MedicalReportPage = () => {
                                 </div>
                             )}
 
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                <div className="md:col-span-3 pb-2 border-b border-gray-100 mb-2">
-                                    <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest">Report Identifiers</h3>
+                            {/* New Photo Upload Field */}
+                            <div className="mt-8 pt-6 border-t border-gray-100">
+                                <h3 className="text-sm font-bold text-gray-500 uppercase tracking-widest mb-4">Examination Photo</h3>
+                                <div className="flex flex-col md:flex-row gap-6 items-start">
+                                    <div className="flex-1">
+                                        <FieldCard
+                                            label="Upload Candidate Photo"
+                                            name="candidate_photo"
+                                            type="file"
+                                            onChange={handleChange}
+                                            value={formData.candidate_photo}
+                                        />
+                                        <p className="text-xs text-gray-400 mt-2 italic">
+                                            * Please upload the photo taken during the medical examination.
+                                        </p>
+                                    </div>
+                                    {formData.candidate_photo && (
+                                        <div className="w-32 h-32 rounded-xl border-2 border-green-200 overflow-hidden shadow-sm bg-white flex-shrink-0 animate-in zoom-in-95 duration-300">
+                                            <img
+                                                src={URL.createObjectURL(formData.candidate_photo)}
+                                                alt="Preview"
+                                                className="w-full h-full object-cover"
+                                            />
+                                        </div>
+                                    )}
                                 </div>
-                                <FieldCard label="Expiry Date" name="report_expiry_date" value={formData.report_expiry_date} onChange={handleChange} type="date" error={errors.report_expiry_date} />
-                                <FieldCard label="GHC Code" name="ghc_code" value={formData.ghc_code} onChange={handleChange} placeholder="GHC-2026-001" error={errors.ghc_code} />
-                                <FieldCard label="GCC Slip No" name="gcc_slip_no" value={formData.gcc_slip_no} onChange={handleChange} placeholder="GCC-123456" error={errors.gcc_slip_no} />
                             </div>
                         </div>
 
@@ -589,6 +601,7 @@ const MedicalReportPage = () => {
                         </div>
                     </div>
                 )}
+
 
                 {/* STEP 2: Systemic & Mental Status */}
                 {currentStep === 2 && (
@@ -806,7 +819,7 @@ const MedicalReportPage = () => {
                     </div>
                 </div>
             </form>
-        </FormLayout>
+        </FormLayout >
     );
 };
 
