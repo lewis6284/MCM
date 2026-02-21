@@ -148,9 +148,9 @@ const MedicalReportPage = () => {
             if (booking) {
                 setCandidateInfo({
                     name: `${booking.Candidate?.first_name} ${booking.Candidate?.last_name}`,
-                    passport: booking.Candidate?.passport_number,
+                    passport: booking.Candidate?.passport_uid,
                     photo: booking.Candidate?.photo_url,
-                    nationality: booking.Candidate?.nationality,
+                    nationality: booking.Candidate?.nationality?.nationality || booking.Candidate?.nationality?.name || "N/A",
                     gender: booking.Candidate?.gender,
                 });
 
