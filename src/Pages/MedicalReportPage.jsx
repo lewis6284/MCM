@@ -6,7 +6,7 @@ import { MoveLeft, CheckCircle, ArrowRight, Search } from "lucide-react";
 
 const MedicalReportPage = () => {
     const [currentStep, setCurrentStep] = useState(1);
-    const totalSteps = 4;
+    const totalSteps = 5;
 
     const [formData, setFormData] = useState({
         booking_id: "",
@@ -140,10 +140,12 @@ const MedicalReportPage = () => {
     }, []);
 
     const handleChange = (e) => {
-        const { name, value, type, files } = e.target;
+        const { name, value, type, files, checked } = e.target;
         setFormData(prev => ({
             ...prev,
-            [name]: type === "file" ? files[0] : (type === "number" ? parseFloat(value) : value)
+            [name]: type === "file" ? files[0] :
+                (type === "checkbox" ? checked :
+                    (type === "number" ? parseFloat(value) : value))
         }));
 
         if (errors[name]) {
@@ -686,23 +688,23 @@ const MedicalReportPage = () => {
                             <h2 className="text-xl font-bold text-gray-800 pb-2 mb-4">VIII. Vaccination Status</h2>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
                                 <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
-                                    <FieldCard label="Polio" name="vac_polio" value={formData.vac_polio} onChange={(e) => setFormData(p => ({ ...p, vac_polio: e.target.checked }))} type="checkbox" />
+                                    <FieldCard label="Polio" name="vac_polio" value={formData.vac_polio} onChange={handleChange} type="checkbox" />
                                     <input type="date" name="vac_polio_date" value={formData.vac_polio_date} onChange={handleChange} className="p-2 border rounded-lg text-sm" />
                                 </div>
                                 <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
-                                    <FieldCard label="MMR 1" name="vac_mmr1" value={formData.vac_mmr1} onChange={(e) => setFormData(p => ({ ...p, vac_mmr1: e.target.checked }))} type="checkbox" />
+                                    <FieldCard label="MMR 1" name="vac_mmr1" value={formData.vac_mmr1} onChange={handleChange} type="checkbox" />
                                     <input type="date" name="vac_mmr1_date" value={formData.vac_mmr1_date} onChange={handleChange} className="p-2 border rounded-lg text-sm" />
                                 </div>
                                 <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
-                                    <FieldCard label="MMR 2" name="vac_mmr2" value={formData.vac_mmr2} onChange={(e) => setFormData(p => ({ ...p, vac_mmr2: e.target.checked }))} type="checkbox" />
+                                    <FieldCard label="MMR 2" name="vac_mmr2" value={formData.vac_mmr2} onChange={handleChange} type="checkbox" />
                                     <input type="date" name="vac_mmr2_date" value={formData.vac_mmr2_date} onChange={handleChange} className="p-2 border rounded-lg text-sm" />
                                 </div>
                                 <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
-                                    <FieldCard label="Meningococcal" name="vac_meningococcal" value={formData.vac_meningococcal} onChange={(e) => setFormData(p => ({ ...p, vac_meningococcal: e.target.checked }))} type="checkbox" />
+                                    <FieldCard label="Meningococcal" name="vac_meningococcal" value={formData.vac_meningococcal} onChange={handleChange} type="checkbox" />
                                     <input type="date" name="vac_meningococcal_date" value={formData.vac_meningococcal_date} onChange={handleChange} className="p-2 border rounded-lg text-sm" />
                                 </div>
                                 <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl md:col-span-2">
-                                    <FieldCard label="COVID-19" name="vac_covid19" value={formData.vac_covid19} onChange={(e) => setFormData(p => ({ ...p, vac_covid19: e.target.checked }))} type="checkbox" />
+                                    <FieldCard label="COVID-19" name="vac_covid19" value={formData.vac_covid19} onChange={handleChange} type="checkbox" />
                                     <input type="date" name="vac_covid19_date" value={formData.vac_covid19_date} onChange={handleChange} className="p-2 border rounded-lg text-sm" />
                                 </div>
                             </div>

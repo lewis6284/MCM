@@ -76,6 +76,17 @@ const FieldCard = ({ label, name, value, onChange, type = "text", options = null
                             <p className="text-xs text-gray-500 truncate">Selected: {value.name}</p>
                         )}
                     </div>
+                ) : type === "checkbox" ? (
+                    <div className="flex items-center gap-3">
+                        <input
+                            type="checkbox"
+                            name={name}
+                            checked={value}
+                            onChange={onChange}
+                            className="w-5 h-5 accent-green-600 rounded cursor-pointer"
+                        />
+                        <span className="text-sm text-gray-500 italic">Received / Completed</span>
+                    </div>
                 ) : (
                     <input
                         type={type}
