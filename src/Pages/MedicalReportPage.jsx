@@ -102,6 +102,7 @@ const MedicalReportPage = () => {
     const [errors, setErrors] = useState({});
     const [searchPassport, setSearchPassport] = useState("");
     const [searching, setSearching] = useState(false);
+    const [candidateInfo, setCandidateInfo] = useState(null);
 
     // Persist reportId
     useEffect(() => {
@@ -124,20 +125,52 @@ const MedicalReportPage = () => {
         }
     }, [formData.height, formData.weight]);
 
-    // Check query params for passport (from Dashboard)
+    // Check query params for passport or booking_id (from Dashboard)
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
         const passport = params.get("passport");
-        if (passport) {
+        const bookingId = params.get("booking_id");
+
+        if (bookingId) {
+            fetchBookingDetails(bookingId, "id");
+        } else if (passport) {
             setSearchPassport(passport);
-            // Trigger search automatically if available? 
-            // We can't call handlePassportSearch here easily because it updates state that might cause loops or issues if not careful.
-            // But we can just set the search term for the user to click 'Find' or we can extract the logic.
-            // Let's just set it for now. User clicks Find.
-            // Or better, trigger it via a timeout or flag?
-            // Actually, let's just leave it populated.
+            fetchBookingDetails(passport, "passport");
         }
     }, []);
+
+    const fetchBookingDetails = async (query, type = "passport") => {
+        setSearching(true);
+        try {
+            const url = type === "id" ? `/bookings/${query}` : `/bookings?passport_number=${query}`;
+            const response = await api.get(url);
+
+            // Backend returns single object for /bookings/:id and array for /bookings?
+            const booking = type === "id" ? response.data : (response.data?.[0]);
+
+            if (booking) {
+                setCandidateInfo({
+                    name: `${booking.Candidate?.first_name} ${booking.Candidate?.last_name}`,
+                    passport: booking.Candidate?.passport_number,
+                    photo: booking.Candidate?.photo_url,
+                    nationality: booking.Candidate?.nationality,
+                    gender: booking.Candidate?.gender,
+                });
+
+                setFormData(prev => ({
+                    ...prev,
+                    booking_id: booking.id
+                }));
+            } else if (type === "passport") {
+                alert("No booking found for this passport number.");
+            }
+        } catch (error) {
+            console.error("Fetch error:", error);
+            if (type === "id") alert("Error loading booking details. Please check the ID.");
+        } finally {
+            setSearching(false);
+        }
+    };
 
     const handleChange = (e) => {
         const { name, value, type, files, checked } = e.target;
@@ -153,39 +186,12 @@ const MedicalReportPage = () => {
         }
     };
 
-    const handlePassportSearch = async () => {
+    const handlePassportSearch = () => {
         if (!searchPassport) {
             alert("Please enter a passport number");
             return;
         }
-
-        setSearching(true);
-        try {
-            const response = await api.get(`/bookings?passport_number=${searchPassport}`);
-            const bookings = response.data;
-
-            if (bookings && bookings.length > 0) {
-                // Assuming we take the most recent booking or the first one found
-                // Ideally, there might be logic to select the correct active booking
-                const booking = bookings[0]; // Simplification
-
-                setFormData(prev => ({
-                    ...prev,
-                    booking_id: booking.id,
-                    // Auto-fill other details if available from candidate/booking
-                    // candidate_photo might be tricky if it's a file object vs URL string
-                    // For now, let's just set the ID which is the critical missing piece
-                }));
-                alert(`Found Booking ID: ${booking.id} for ${booking.Candidate.first_name} ${booking.Candidate.last_name}`);
-            } else {
-                alert("No booking found for this passport number.");
-            }
-        } catch (error) {
-            console.error("Search error:", error);
-            alert("Error searching for booking: " + (error.response?.data?.message || error.message));
-        } finally {
-            setSearching(false);
-        }
+        fetchBookingDetails(searchPassport, "passport");
     };
 
     const validateStep = (step) => {
@@ -496,40 +502,74 @@ const MedicalReportPage = () => {
                 {currentStep === 1 && (
                     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
                         <div className="bg-white p-6 rounded-lg shadow-sm">
-                            <h2 className="text-xl font-bold text-gray-800 border-b pb-2 mb-4">I. Examination Details</h2>
-                            <div className="mb-6 bg-blue-50 p-4 rounded-xl border border-blue-100">
-                                <label className="block text-sm font-medium text-blue-800 mb-2">Search Booking by Passport</label>
-                                <div className="flex gap-2">
-                                    <input
-                                        type="text"
-                                        value={searchPassport}
-                                        onChange={(e) => setSearchPassport(e.target.value)}
-                                        placeholder="Enter Passport Number"
-                                        className="flex-1 p-3 border border-blue-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={handlePassportSearch}
-                                        disabled={searching}
-                                        className="bg-blue-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-blue-700 transition-colors disabled:opacity-70"
-                                    >
-                                        {searching ? "Searching..." : "Find"}
-                                    </button>
-                                </div>
-                            </div>
+                            <h2 className="text-xl font-bold text-gray-800 border-b pb-2 mb-6">I. Examination Details</h2>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="md:col-span-2">
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Candidate Photo</label>
-                                    <input
-                                        type="file"
-                                        name="candidate_photo"
-                                        onChange={handleChange}
-                                        className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all"
-                                        accept="image/*"
-                                    />
+                            {/* Candidate Summary Card (shown if identified) */}
+                            {candidateInfo ? (
+                                <div className="mb-8 bg-green-50 p-6 rounded-2xl border border-green-100 flex items-center gap-6 relative overflow-hidden">
+                                    <div className="absolute top-0 right-0 p-4">
+                                        <span className="bg-green-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-sm">
+                                            Booking ID: #{formData.booking_id}
+                                        </span>
+                                    </div>
+                                    <div className="w-24 h-24 rounded-2xl border-2 border-white shadow-md overflow-hidden bg-white flex-shrink-0">
+                                        {candidateInfo.photo ? (
+                                            <img src={candidateInfo.photo} alt="Candidate" className="w-full h-full object-cover" />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center text-green-200">
+                                                <Search size={40} />
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="flex-1">
+                                        <h3 className="text-2xl font-extrabold text-gray-900 leading-tight">{candidateInfo.name}</h3>
+                                        <div className="grid grid-cols-2 gap-4 mt-2">
+                                            <div className="flex items-center gap-2 text-sm text-gray-600">
+                                                <span className="font-bold opacity-75">Passport:</span>
+                                                <span className="font-mono bg-white px-2 py-0.5 rounded border border-green-100">{candidateInfo.passport}</span>
+                                            </div>
+                                            <div className="flex items-center gap-2 text-sm text-gray-600">
+                                                <span className="font-bold opacity-75">Nationality:</span>
+                                                <span>{candidateInfo.nationality}</span>
+                                            </div>
+                                            <div className="flex items-center gap-2 text-sm text-gray-600 font-medium">
+                                                <span className="font-bold opacity-75">Gender:</span>
+                                                <span className="capitalize">{candidateInfo.gender}</span>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                                <FieldCard label="Booking ID" name="booking_id" value={formData.booking_id} onChange={handleChange} placeholder="e.g. 12" error={errors.booking_id} type="number" />
+                            ) : (
+                                /* Manual Search (only if not from link) */
+                                <div className="mb-10 bg-blue-50 p-6 rounded-2xl border border-blue-100">
+                                    <label className="block text-sm font-bold text-blue-800 mb-2 tracking-wide uppercase">Search Booking</label>
+                                    <div className="flex gap-3">
+                                        <div className="relative flex-1">
+                                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-400" size={20} />
+                                            <input
+                                                type="text"
+                                                value={searchPassport}
+                                                onChange={(e) => setSearchPassport(e.target.value)}
+                                                placeholder="Enter Passport Number..."
+                                                className="w-full pl-12 pr-4 py-3.5 border border-blue-200 rounded-xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all shadow-sm"
+                                            />
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={handlePassportSearch}
+                                            disabled={searching}
+                                            className="bg-blue-600 text-white px-8 py-3.5 rounded-xl font-bold hover:bg-blue-700 transition-all active:scale-95 disabled:opacity-50 shadow-lg shadow-blue-500/20"
+                                        >
+                                            {searching ? "Searching..." : "Find Candidate"}
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div className="md:col-span-3 pb-2 border-b border-gray-100 mb-2">
+                                    <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest">Report Identifiers</h3>
+                                </div>
                                 <FieldCard label="Expiry Date" name="report_expiry_date" value={formData.report_expiry_date} onChange={handleChange} type="date" error={errors.report_expiry_date} />
                                 <FieldCard label="GHC Code" name="ghc_code" value={formData.ghc_code} onChange={handleChange} placeholder="GHC-2026-001" error={errors.ghc_code} />
                                 <FieldCard label="GCC Slip No" name="gcc_slip_no" value={formData.gcc_slip_no} onChange={handleChange} placeholder="GCC-123456" error={errors.gcc_slip_no} />
