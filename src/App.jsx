@@ -17,53 +17,60 @@ import MedicalReportPage from "./Pages/MedicalReportPage";
 import HospitalDashboardPage from "./Pages/HospitalDashboardPage";
 import PaymentVerificationPage from "./Pages/PaymentVerificationPage";
 import AppointmentsListPage from "./Pages/AppointmentsListPage";
+import SMSFloatingButton from "./components/SMSFloatingButton";
+import { ChatProvider } from "./context/ChatContext";
+import SMSChatLayout from "./components/SMSChatLayout";
 
 function AppContent() {
     const { user, isAuthenticated } = useAuth();
 
     return (
-        <Routes>
-            {/* Public Routes */}
-            <Route path="/login" element={<LoginPage />} />
+        <>
+            <Routes>
+                {/* Public Routes */}
+                <Route path="/login" element={<LoginPage />} />
 
-            {/* Protected Routes */}
-            <Route element={<ProtectedRoute />}>
-                {/* Admin & PI Routes */}
-                {(user?.role === "ADMIN" || user?.role === "PI") && (
-                    <>
-                        <Route path="/dashboard" element={<DashboardPage />} />
-                        <Route path="/dashboard/register-admin" element={<RegisterAdminPage />} />
-                        <Route path="/dashboard/users" element={<UserManagementPage />} />
-                        <Route path="/dashboard/create-user" element={<UserCreatePage />} />
-                        <Route path="/dashboard/countries" element={<CountryCreatePage />} />
-                        <Route path="/dashboard/cities" element={<CityManagementPage />} />
-                        <Route path="/dashboard/agencies" element={<AgencyManagementPage />} />
-                        <Route path="/dashboard/hospitals" element={<HospitalManagementPage />} />
-                        <Route path="/dashboard/positions" element={<PositionManagementPage />} />
-                        <Route path="/dashboard/payments" element={<PaymentVerificationPage />} />
-                        <Route path="/dashboard/appointments" element={<AppointmentsListPage />} />
-                    </>
-                )}
+                {/* Protected Routes */}
+                <Route element={<ProtectedRoute />}>
+                    {/* Admin & PI Routes */}
+                    {(user?.role === "ADMIN" || user?.role === "PI") && (
+                        <>
+                            <Route path="/dashboard" element={<DashboardPage />} />
+                            <Route path="/dashboard/register-admin" element={<RegisterAdminPage />} />
+                            <Route path="/dashboard/users" element={<UserManagementPage />} />
+                            <Route path="/dashboard/create-user" element={<UserCreatePage />} />
+                            <Route path="/dashboard/countries" element={<CountryCreatePage />} />
+                            <Route path="/dashboard/cities" element={<CityManagementPage />} />
+                            <Route path="/dashboard/agencies" element={<AgencyManagementPage />} />
+                            <Route path="/dashboard/hospitals" element={<HospitalManagementPage />} />
+                            <Route path="/dashboard/positions" element={<PositionManagementPage />} />
+                            <Route path="/dashboard/payments" element={<PaymentVerificationPage />} />
+                            <Route path="/dashboard/appointments" element={<AppointmentsListPage />} />
+                        </>
+                    )}
 
-                {/* Common Protected Routes */}
-                <Route path="/form" element={<FormPage />} />
-                <Route path="/medical-reports" element={<MedicalReportPage />} />
-                <Route path="/hospital-dashboard" element={<HospitalDashboardPage />} />
-            </Route>
+                    {/* Common Protected Routes */}
+                    <Route path="/form" element={<FormPage />} />
+                    <Route path="/medical-reports" element={<MedicalReportPage />} />
+                    <Route path="/hospital-dashboard" element={<HospitalDashboardPage />} />
+                </Route>
 
-            {/* Default Redirects */}
-            <Route path="/" element={
-                isAuthenticated
-                    ? (() => {
-                        if (user?.role === "AGENCY") return <Navigate to="/form" replace />;
-                        if (user?.role === "HOSPITAL") return <Navigate to="/medical-reports" replace />;
-                        if (user?.role === "PI") return <Navigate to="/dashboard" replace />;
-                        return <Navigate to="/dashboard" replace />;
-                    })()
-                    : <Navigate to="/login" replace />
-            } />
-            <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+                {/* Default Redirects */}
+                <Route path="/" element={
+                    isAuthenticated
+                        ? (() => {
+                            if (user?.role === "AGENCY") return <Navigate to="/form" replace />;
+                            if (user?.role === "HOSPITAL") return <Navigate to="/medical-reports" replace />;
+                            if (user?.role === "PI") return <Navigate to="/dashboard" replace />;
+                            return <Navigate to="/dashboard" replace />;
+                        })()
+                        : <Navigate to="/login" replace />
+                } />
+                <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+            <SMSFloatingButton />
+            <SMSChatLayout />
+        </>
     );
 }
 
@@ -71,7 +78,9 @@ function App() {
     return (
         <Router>
             <AuthProvider>
-                <AppContent />
+                <ChatProvider>
+                    <AppContent />
+                </ChatProvider>
             </AuthProvider>
         </Router>
     );

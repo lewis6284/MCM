@@ -1,10 +1,13 @@
 import React, { useState } from "react";
-import { Moon, Sun, User, LogOut, Bell } from "lucide-react";
+import { Moon, Sun, User, LogOut, Bell, MessageSquareText } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import { useChat } from "../context/ChatContext";
 
 const Navbar = () => {
     const { logout, user } = useAuth();
+    const { toggleChat } = useChat();
     const [isDark, setIsDark] = useState(false);
+    const isAdminOrPI = user?.role === "ADMIN" || user?.role === "PI";
 
     const toggleDarkMode = () => {
         setIsDark(!isDark);
@@ -26,6 +29,17 @@ const Navbar = () => {
                     <Bell size={22} />
                     <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
                 </button>
+
+                {/* Chat Toggle (Admin/PI Only) */}
+                {isAdminOrPI && (
+                    <button
+                        onClick={toggleChat}
+                        className="p-2 text-gray-400 hover:text-green-600 transition-colors relative"
+                    >
+                        <MessageSquareText size={22} />
+                        <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white animate-pulse"></span>
+                    </button>
+                )}
 
                 {/* Theme Toggle */}
                 <button
