@@ -10,17 +10,16 @@ const FormLayout = ({ children }) => {
 
             <div className="max-w-3xl mx-auto relative z-10">
                 {/* Logos - Aligned with the form container */}
-                <div className="flex justify-end items-center gap-4 mb-6">
+                <div className="flex justify-between items-center px-2 mb-6">
                     <img
                         src={gulfLogo}
                         alt="Gulf Logo"
-                        className="h-12 md:h-16 w-auto drop-shadow-sm"
+                        className="h-24 md:h-38 w-auto drop-shadow-sm"
                     />
-                    <div className="h-10 w-[1px] bg-green-200" />
                     <img
                         src={mainLogo}
                         alt="MCM Logo"
-                        className="h-12 md:h-16 w-auto drop-shadow-sm"
+                        className="h-16 md:h-20 w-auto drop-shadow-sm"
                     />
                 </div>
 
