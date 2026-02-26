@@ -6,7 +6,7 @@ import tailwindcss from '@tailwindcss/vite'
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   build: {
-    outDir: '../api/public',
+    outDir: '../mcm_api/public',
     emptyOutDir: true,
   },
 })
